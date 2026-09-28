@@ -23,6 +23,11 @@ class ApiResponse(BaseResponse, Generic[T]):
     data: T
     message: Optional[str] = None
 
+    @classmethod
+    def ok(cls, data: T, message: Optional[str] = None) -> "ApiResponse[T]":
+        return cls(data=data, message=message)
+
+
 
 class PaginationMeta(BaseModel):
     total: int

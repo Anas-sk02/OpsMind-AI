@@ -39,6 +39,17 @@ from app.schemas.task import (
     ReassignTaskRequest,
     EmployeeWorkloadMetric,
 )
+from app.schemas.ai_extraction import (
+    ExtractedOrderItem,
+    OrderExtractionResult,
+    ExtractEmailRequest,
+    ExtractEmailResponse,
+    EntityResolutionRequest,
+    EntityResolutionResponse,
+    EntityMatchItem,
+    OutboundSynthesisRequest,
+    OutboundSynthesisResponse,
+)
 
 __all__ = [
     "ApiResponse",
@@ -70,4 +81,14 @@ __all__ = [
     "UpdateTaskStatusRequest",
     "ReassignTaskRequest",
     "EmployeeWorkloadMetric",
+    "ExtractedOrderItem",
+    "OrderExtractionResult",
+    "ExtractEmailRequest",
+    "ExtractEmailResponse",
+    "EntityResolutionRequest",
+    "EntityResolutionResponse",
+    "EntityMatchItem",
+    "OutboundSynthesisRequest",
+    "OutboundSynthesisResponse",
 ]
+

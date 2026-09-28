@@ -6,6 +6,7 @@ from app.api.v1.admin_products import router as admin_products_router
 from app.api.v1.admin_inventory import router as admin_inventory_router
 from app.api.v1.admin_orders import router as admin_orders_router
 from app.api.v1.employee_tasks import router as employee_tasks_router
+from app.api.v1.ai import router as ai_router
 
 api_v1_router = APIRouter()
 
@@ -30,7 +31,8 @@ api_v1_router.include_router(admin_orders_router, tags=["Admin Orders"])
 # Employee Tasks & Workload Management
 api_v1_router.include_router(employee_tasks_router, tags=["Employee & Warehouse Tasks"])
 
-# Subsequent phase routers will be registered here cleanly:
-# api_v1_router.include_router(webhooks_router, prefix="/webhooks", tags=["Webhooks"])
+# AI Extraction & Guardrails
+api_v1_router.include_router(ai_router, tags=["AI & Extraction"])
+
 
 
