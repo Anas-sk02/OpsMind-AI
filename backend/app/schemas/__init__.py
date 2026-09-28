@@ -32,6 +32,13 @@ from app.schemas.order import (
     OrderResponse,
     OrderEventResponse,
 )
+from app.schemas.task import (
+    TaskResponse,
+    TaskWithOrderResponse,
+    UpdateTaskStatusRequest,
+    ReassignTaskRequest,
+    EmployeeWorkloadMetric,
+)
 
 __all__ = [
     "ApiResponse",
@@ -58,4 +65,9 @@ __all__ = [
     "OrderItemResponse",
     "OrderResponse",
     "OrderEventResponse",
+    "TaskResponse",
+    "TaskWithOrderResponse",
+    "UpdateTaskStatusRequest",
+    "ReassignTaskRequest",
+    "EmployeeWorkloadMetric",
 ]

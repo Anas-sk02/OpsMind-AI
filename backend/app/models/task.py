@@ -70,11 +70,14 @@ class Task(Base):
     order: Mapped["Order"] = relationship(
         "Order",
         back_populates="tasks",
+        lazy="selectin",
     )
     assigned_employee: Mapped[Optional["User"]] = relationship(
         "User",
         back_populates="assigned_tasks",
+        lazy="selectin",
     )
+
 
     def mark_completed(self) -> None:
         self.status = "COMPLETED"

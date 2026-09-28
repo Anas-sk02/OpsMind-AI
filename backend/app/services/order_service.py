@@ -366,10 +366,25 @@ class OrderService:
         db.add(audit)
 
         await db.commit()
+
+        # Auto-spawn tasks upon entering operational workflow stages
+        from app.services.task_service import TaskService
+        if target_status == "PACKAGING":
+            try:
+                await TaskService.spawn_packaging_task(db, order_id=order.id, actor_id=actor_id)
+            except Exception as ex:
+                logger.error(f"Failed to auto-spawn packaging task for order {order.id}: {ex}")
+        elif target_status == "PACKED":
+            try:
+                await TaskService.spawn_delivery_task(db, order_id=order.id, actor_id=actor_id)
+            except Exception as ex:
+                logger.error(f"Failed to auto-spawn delivery task for order {order.id}: {ex}")
+
         refreshed_order = await OrderService.get_order_by_id(db, order.id)
         logger.info(f"Order '{order.order_number}' transitioned from '{current_status}' -> '{target_status}'")
 
         return OrderService._to_order_response(refreshed_order)  # type: ignore
+
 
 
     @staticmethod

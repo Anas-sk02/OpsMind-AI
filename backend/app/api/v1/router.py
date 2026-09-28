@@ -5,6 +5,7 @@ from app.api.v1.admin_employees import router as admin_employees_router
 from app.api.v1.admin_products import router as admin_products_router
 from app.api.v1.admin_inventory import router as admin_inventory_router
 from app.api.v1.admin_orders import router as admin_orders_router
+from app.api.v1.employee_tasks import router as employee_tasks_router
 
 api_v1_router = APIRouter()
 
@@ -26,7 +27,10 @@ api_v1_router.include_router(admin_inventory_router, tags=["Admin Inventory"])
 # Admin Orders & State Machine
 api_v1_router.include_router(admin_orders_router, tags=["Admin Orders"])
 
+# Employee Tasks & Workload Management
+api_v1_router.include_router(employee_tasks_router, tags=["Employee & Warehouse Tasks"])
+
 # Subsequent phase routers will be registered here cleanly:
-# api_v1_router.include_router(employee_tasks_router, prefix="/employee/tasks", tags=["Employee Tasks"])
 # api_v1_router.include_router(webhooks_router, prefix="/webhooks", tags=["Webhooks"])
+
 

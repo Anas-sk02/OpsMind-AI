@@ -34,11 +34,12 @@ class OrderEvent(Base):
         String(50),
         nullable=True,
     )
-    to_status: Mapped[str] = mapped_column(
+    to_status: Mapped[Optional[str]] = mapped_column(
         String(50),
-        nullable=False,
+        nullable=True,
         index=True,
     )
+
     event_type: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
