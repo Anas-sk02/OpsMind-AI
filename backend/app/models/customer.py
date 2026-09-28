@@ -47,6 +47,23 @@ class Customer(Base):
         default="en",
         nullable=False,
     )
+
+    @property
+    def full_name(self) -> str:
+        return self.name
+
+    @full_name.setter
+    def full_name(self, val: str):
+        self.name = val
+
+    @property
+    def shipping_address(self) -> Optional[str]:
+        return self.address
+
+    @shipping_address.setter
+    def shipping_address(self, val: Optional[str]):
+        self.address = val
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,

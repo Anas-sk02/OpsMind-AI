@@ -79,6 +79,8 @@ def require_roles(allowed_roles: List[str]) -> Callable:
 
 # Convenient pre-configured role dependencies
 require_admin = require_roles(["ADMIN"])
-require_packaging = require_roles(["PACKAGING"])
-require_delivery = require_roles(["DELIVERY"])
-require_operator = require_roles(["PACKAGING", "DELIVERY"])
+require_packaging = require_roles(["ADMIN", "PACKAGING"])
+require_delivery = require_roles(["ADMIN", "DELIVERY"])
+require_operator = require_roles(["ADMIN", "PACKAGING", "DELIVERY"])
+require_authenticated_staff = require_roles(["ADMIN", "PACKAGING", "DELIVERY"])
+

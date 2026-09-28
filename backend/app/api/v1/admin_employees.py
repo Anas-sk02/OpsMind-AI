@@ -13,7 +13,8 @@ from app.schemas.auth import (
 from app.schemas.common import ApiResponse, PaginatedResponse, PaginationMeta
 from app.services.auth_service import AuthService
 
-router = APIRouter(tags=["Admin Employees"])
+router = APIRouter(prefix="/admin/employees", tags=["Admin Employees"])
+
 
 
 @router.get(

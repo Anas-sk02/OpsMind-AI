@@ -45,12 +45,26 @@ class Product(Base):
         nullable=False,
         default=Decimal("0.00"),
     )
+    category: Mapped[Optional[str]] = mapped_column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
         nullable=False,
         index=True,
     )
+
+    @property
+    def price(self) -> Decimal:
+        return self.unit_price
+
+    @price.setter
+    def price(self, value: Decimal):
+        self.unit_price = value
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

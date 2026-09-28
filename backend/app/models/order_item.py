@@ -65,7 +65,9 @@ class OrderItem(Base):
     product: Mapped["Product"] = relationship(
         "Product",
         back_populates="order_items",
+        lazy="selectin",
     )
+
 
     def calculate_total(self) -> Decimal:
         self.total_price = Decimal(self.quantity) * self.unit_price

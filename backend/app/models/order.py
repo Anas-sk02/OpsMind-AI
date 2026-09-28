@@ -67,6 +67,27 @@ class Order(Base):
         nullable=False,
         default=Decimal("0.00"),
     )
+
+    @property
+    def shipping_address(self) -> str:
+        return self.delivery_address
+
+    @shipping_address.setter
+    def shipping_address(self, value: str):
+        self.delivery_address = value
+
+    @property
+    def currency(self) -> str:
+        return "USD"
+
+    @property
+    def raw_source(self) -> str:
+        return self.source_email_id or "EMAIL"
+
+    @raw_source.setter
+    def raw_source(self, value: Optional[str]):
+        self.source_email_id = value
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

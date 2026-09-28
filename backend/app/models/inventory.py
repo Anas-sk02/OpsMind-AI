@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+
 from sqlalchemy import Integer, DateTime, ForeignKey, CheckConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,12 +50,22 @@ class Inventory(Base):
         default=10,
         nullable=False,
     )
+    last_restocked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
 
     # 1-to-1 Relationship back to Product
     product: Mapped["Product"] = relationship(
