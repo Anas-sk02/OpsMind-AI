@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, TYPE_CHECKING
-from sqlalchemy import String, DateTime, Text, ForeignKey, Index, JSON
+from sqlalchemy import String, DateTime, Text, ForeignKey, Index, JSON, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.database import Base
 
@@ -19,13 +19,13 @@ class OrderEvent(Base):
     __tablename__ = "order_events"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
@@ -50,7 +50,7 @@ class OrderEvent(Base):
         nullable=True,
     )
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
@@ -92,13 +92,13 @@ class AuditLog(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
@@ -114,7 +114,7 @@ class AuditLog(Base):
         index=True,  # "products", "users", "customers", "inventory", "orders", "tasks"
     )
     entity_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         nullable=False,
         index=True,
     )

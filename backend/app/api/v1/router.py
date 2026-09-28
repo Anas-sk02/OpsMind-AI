@@ -1,13 +1,20 @@
 from fastapi import APIRouter
 from app.api.v1.health import router as health_router
+from app.api.v1.auth import router as auth_router
+from app.api.v1.admin_employees import router as admin_employees_router
 
 api_v1_router = APIRouter()
 
-# Register core health endpoints
+# Health & Probe Status
 api_v1_router.include_router(health_router, prefix="", tags=["Health & Status"])
 
-# Future Phase Routers will be registered here cleanly:
-# api_v1_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+# Authentication & Session Management
+api_v1_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+# Admin Staff & Employee Management
+api_v1_router.include_router(admin_employees_router, prefix="/admin/employees", tags=["Admin Employees"])
+
+# Subsequent phase routers will be registered here cleanly:
 # api_v1_router.include_router(admin_products_router, prefix="/admin/products", tags=["Admin Products"])
 # api_v1_router.include_router(admin_inventory_router, prefix="/admin/inventory", tags=["Admin Inventory"])
 # api_v1_router.include_router(admin_orders_router, prefix="/admin/orders", tags=["Admin Orders"])

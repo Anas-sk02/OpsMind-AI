@@ -1,9 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, DateTime, Text, ForeignKey, Index
+from sqlalchemy import String, DateTime, Text, ForeignKey, Index, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -25,19 +24,19 @@ class Task(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
     )
     assigned_employee_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
         nullable=True,

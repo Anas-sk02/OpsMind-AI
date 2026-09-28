@@ -1,9 +1,8 @@
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
-from sqlalchemy import Integer, Numeric, ForeignKey, CheckConstraint
+from sqlalchemy import Integer, Numeric, ForeignKey, CheckConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -25,19 +24,19 @@ class OrderItem(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("products.id", ondelete="RESTRICT"),
         index=True,
         nullable=False,

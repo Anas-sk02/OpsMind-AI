@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, TYPE_CHECKING
-from sqlalchemy import String, DateTime, Text, ForeignKey, JSON
+from sqlalchemy import String, DateTime, Text, ForeignKey, JSON, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.database import Base
 
@@ -20,7 +20,7 @@ class EmailMessage(Base):
     __tablename__ = "email_messages"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
@@ -32,13 +32,13 @@ class EmailMessage(Base):
         nullable=False,
     )
     customer_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("customers.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
     order_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("orders.id", ondelete="SET NULL"),
         index=True,
         nullable=True,

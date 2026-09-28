@@ -1,9 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
-from sqlalchemy import Integer, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Integer, DateTime, ForeignKey, CheckConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -23,13 +22,13 @@ class Inventory(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("products.id", ondelete="CASCADE"),
         unique=True,
         index=True,

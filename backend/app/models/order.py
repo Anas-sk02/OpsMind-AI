@@ -2,9 +2,8 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, DateTime, Text, Numeric, ForeignKey
+from sqlalchemy import String, DateTime, Text, Numeric, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -25,7 +24,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
@@ -37,7 +36,7 @@ class Order(Base):
         nullable=False,
     )
     customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("customers.id", ondelete="RESTRICT"),
         index=True,
         nullable=False,
