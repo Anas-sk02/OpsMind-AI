@@ -4,7 +4,7 @@ import { Zap, ShieldCheck, Box, Truck, ArrowRight, AlertCircle } from 'lucide-re
 import type { UserRole } from '../../types';
 
 export const LoginView: React.FC = () => {
-  const { login, quickSwitchRole } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,16 @@ export const LoginView: React.FC = () => {
   };
 
   const handleQuickRole = (role: UserRole) => {
-    quickSwitchRole(role);
+    if (role === 'ADMIN') {
+      setEmail('admin@opsmind.io');
+      setPassword('Admin@123456!');
+    } else if (role === 'PACKAGING') {
+      setEmail('packager1@opsmind.io');
+      setPassword('Packager@123456!');
+    } else if (role === 'DELIVERY') {
+      setEmail('driver1@opsmind.io');
+      setPassword('Driver@123456!');
+    }
   };
 
   return (
@@ -126,7 +135,7 @@ export const LoginView: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Demo Access Badges */}
+        {/* Quick Fill Helpers (Does not bypass login) */}
         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
           <div
             style={{
@@ -138,7 +147,7 @@ export const LoginView: React.FC = () => {
               letterSpacing: '0.05em',
             }}
           >
-            Quick 1-Click Role Login
+            Click to fill demo credentials
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
@@ -146,6 +155,7 @@ export const LoginView: React.FC = () => {
               onClick={() => handleQuickRole('ADMIN')}
               type="button"
               className="btn btn-secondary"
+              title="Fill Admin Credentials"
               style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
             >
               <ShieldCheck size={16} color="var(--accent-cyan)" />
@@ -156,6 +166,7 @@ export const LoginView: React.FC = () => {
               onClick={() => handleQuickRole('PACKAGING')}
               type="button"
               className="btn btn-secondary"
+              title="Fill Packager Credentials"
               style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
             >
               <Box size={16} color="var(--accent-blue)" />
@@ -166,6 +177,7 @@ export const LoginView: React.FC = () => {
               onClick={() => handleQuickRole('DELIVERY')}
               type="button"
               className="btn btn-secondary"
+              title="Fill Driver Credentials"
               style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
             >
               <Truck size={16} color="var(--accent-amber)" />
