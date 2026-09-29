@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
-import type { User, UserRole } from '../types';
+import type { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -8,7 +8,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<User>;
   logout: () => void;
-  quickSwitchRole: (role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,20 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  // Quick switch role utility for easy developer testing between Admin, Packager, and Delivery
-  const quickSwitchRole = async (role: UserRole) => {
-    const roleCreds: Record<UserRole, { email: string; pass: string }> = {
-      ADMIN: { email: 'admin@opsmind.io', pass: 'Admin@123456!' },
-      PACKAGING: { email: 'packager1@opsmind.io', pass: 'Packager@123456!' },
-      DELIVERY: { email: 'driver1@opsmind.io', pass: 'Driver@123456!' },
-    };
-
-    const creds = roleCreds[role];
-    if (creds) {
-      await login(creds.email, creds.pass);
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -86,7 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
-        quickSwitchRole,
       }}
     >
       {children}

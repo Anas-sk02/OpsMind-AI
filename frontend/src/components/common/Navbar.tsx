@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { SimulateEmailModal } from './SimulateEmailModal';
 import { Sparkles, LogOut, Zap } from 'lucide-react';
-import type { UserRole } from '../../types';
 
 interface NavbarProps {
   onRefresh?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
-  const { user, logout, quickSwitchRole } = useAuth();
+  const { user, logout } = useAuth();
   const [isSimulateOpen, setIsSimulateOpen] = useState(false);
 
   return (
@@ -81,54 +80,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
 
         {/* Center / Right controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Simulate Email Webhook Trigger */}
-          <button
-            onClick={() => setIsSimulateOpen(true)}
-            className="btn btn-primary"
-            style={{ fontSize: '0.8125rem', padding: '0.45rem 0.875rem' }}
-          >
-            <Sparkles size={14} />
-            Simulate Inbound Email
-          </button>
-
-          {/* Quick Role Switcher for Developer Testing */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.2rem',
-              border: '1px solid var(--border-color)',
-            }}
-          >
-            {(['ADMIN', 'PACKAGING', 'DELIVERY'] as UserRole[]).map((role) => {
-              const isActive = user?.role === role;
-              return (
-                <button
-                  key={role}
-                  onClick={() => quickSwitchRole(role)}
-                  style={{
-                    padding: '0.3rem 0.6rem',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-heading)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    cursor: 'pointer',
-                    background: isActive ? 'var(--accent-blue)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--text-muted)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title={`Switch role to ${role}`}
-                >
-                  {role === 'ADMIN' && 'Admin'}
-                  {role === 'PACKAGING' && 'Packager'}
-                  {role === 'DELIVERY' && 'Driver'}
-                </button>
-              );
-            })}
-          </div>
+          {/* Simulate Email Webhook Trigger (Admin Only) */}
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={() => setIsSimulateOpen(true)}
+              className="btn btn-primary"
+              style={{ fontSize: '0.8125rem', padding: '0.45rem 0.875rem' }}
+            >
+              <Sparkles size={14} />
+              Simulate Inbound Email
+            </button>
+          )}
 
           {/* Current User Info & Logout */}
           <div
@@ -145,12 +107,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
               <div
                 style={{
                   fontSize: '0.7rem',
-                  color: 'var(--accent-cyan)',
-                  fontWeight: 600,
+                  color: user?.role === 'ADMIN' ? 'var(--accent-cyan)' : user?.role === 'PACKAGING' ? 'var(--accent-blue)' : 'var(--accent-amber)',
+                  fontWeight: 700,
                   textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
                 }}
               >
-                {user?.role}
+                {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'PACKAGING' ? 'Packaging Operator' : 'Delivery Driver'}
               </div>
             </div>
 
