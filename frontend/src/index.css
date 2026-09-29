@@ -48,6 +48,12 @@
   padding: 0;
 }
 
+html, body {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -55,8 +61,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  min-height: 100vh;
-  overflow-x: hidden;
   background-image: 
     radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.04) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(129, 140, 248, 0.05) 0px, transparent 50%),
@@ -113,10 +117,21 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-2px);
 }
 
-/* App Layout Grid */
+/* App Layout Grid - Fixed Header & Sidebar, Scrollable Content */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 64px);
+  overflow: hidden;
   position: relative;
 }
 
@@ -125,7 +140,9 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .page-wrapper {

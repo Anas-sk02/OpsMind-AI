@@ -12,6 +12,7 @@ import { EmployeesView } from './components/admin/EmployeesView';
 import { EmailAuditView } from './components/admin/EmailAuditView';
 import { PackagingPortal } from './components/packaging/PackagingPortal';
 import { DeliveryPortal } from './components/delivery/DeliveryPortal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import type { Order } from './types';
 
 const MainLayout: React.FC = () => {
@@ -23,7 +24,8 @@ const MainLayout: React.FC = () => {
     return (
       <div
         style={{
-          minHeight: '100vh',
+          height: '100vh',
+          width: '100vw',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -45,22 +47,30 @@ const MainLayout: React.FC = () => {
   // Operator-focused portals
   if (user.role === 'PACKAGING') {
     return (
-      <div className="app-container" style={{ flexDirection: 'column' }}>
+      <div className="app-container">
         <Navbar />
-        <main className="main-content">
-          <PackagingPortal />
-        </main>
+        <div className="app-body">
+          <main className="main-content">
+            <ErrorBoundary fallbackTitle="Packaging Portal Error">
+              <PackagingPortal />
+            </ErrorBoundary>
+          </main>
+        </div>
       </div>
     );
   }
 
   if (user.role === 'DELIVERY') {
     return (
-      <div className="app-container" style={{ flexDirection: 'column' }}>
+      <div className="app-container">
         <Navbar />
-        <main className="main-content">
-          <DeliveryPortal />
-        </main>
+        <div className="app-body">
+          <main className="main-content">
+            <ErrorBoundary fallbackTitle="Delivery Terminal Error">
+              <DeliveryPortal />
+            </ErrorBoundary>
+          </main>
+        </div>
       </div>
     );
   }
@@ -72,32 +82,34 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="app-container" style={{ flexDirection: 'column' }}>
+    <div className="app-container">
       <Navbar onRefresh={() => {}} />
-      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 64px)' }}>
+      <div className="app-body">
         <Sidebar activeTab={adminTab} onSelectTab={setAdminTab} />
         <main className="main-content">
-          {adminTab === 'dashboard' && (
-            <AdminDashboard
-              onNavigateTab={setAdminTab}
-              onViewOrder={handleViewOrder}
-            />
-          )}
+          <ErrorBoundary fallbackTitle="Admin Portal Error">
+            {adminTab === 'dashboard' && (
+              <AdminDashboard
+                onNavigateTab={setAdminTab}
+                onViewOrder={handleViewOrder}
+              />
+            )}
 
-          {adminTab === 'orders' && (
-            <OrdersView
-              selectedOrderModal={selectedOrderForModal}
-              onCloseModal={() => setSelectedOrderForModal(null)}
-            />
-          )}
+            {adminTab === 'orders' && (
+              <OrdersView
+                selectedOrderModal={selectedOrderForModal}
+                onCloseModal={() => setSelectedOrderForModal(null)}
+              />
+            )}
 
-          {adminTab === 'review_queue' && <ReviewQueueView />}
+            {adminTab === 'review_queue' && <ReviewQueueView />}
 
-          {adminTab === 'inventory' && <InventoryView />}
+            {adminTab === 'inventory' && <InventoryView />}
 
-          {adminTab === 'employees' && <EmployeesView />}
+            {adminTab === 'employees' && <EmployeesView />}
 
-          {adminTab === 'emails' && <EmailAuditView />}
+            {adminTab === 'emails' && <EmailAuditView />}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

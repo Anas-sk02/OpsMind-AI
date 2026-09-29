@@ -324,7 +324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       )}
                     </td>
                     <td className="mono" style={{ fontWeight: 600 }}>
-                      ${order.total_amount.toFixed(2)}
+                      ${Number(order.total_amount ?? 0).toFixed(2)}
                     </td>
                     <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                       {new Date(order.created_at).toLocaleTimeString([], {

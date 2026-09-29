@@ -223,7 +223,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     )}
                   </td>
                   <td className="mono" style={{ fontWeight: 600 }}>
-                    ${order.total_amount.toFixed(2)}
+                    ${Number(order.total_amount ?? 0).toFixed(2)}
                   </td>
                   <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                     {new Date(order.created_at).toLocaleDateString([], {
@@ -364,10 +364,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div className="mono" style={{ fontWeight: 600 }}>
-                          {item.quantity} x ${item.unit_price.toFixed(2)}
+                          {item.quantity} x ${Number(item.unit_price ?? 0).toFixed(2)}
                         </div>
                         <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          ${item.total_price.toFixed(2)}
+                          ${Number(item.total_price ?? 0).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -384,7 +384,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   >
                     <span>Total Amount</span>
                     <span className="mono" style={{ color: 'var(--accent-emerald)' }}>
-                      ${activeModalOrder.total_amount.toFixed(2)}
+                      ${Number(activeModalOrder.total_amount ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

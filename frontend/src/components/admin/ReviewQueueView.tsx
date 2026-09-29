@@ -198,7 +198,7 @@ export const ReviewQueueView: React.FC = () => {
                 </div>
 
                 <div className="mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                  ${selectedOrder.total_amount.toFixed(2)}
+                  ${Number(selectedOrder.total_amount ?? 0).toFixed(2)}
                 </div>
               </div>
 
@@ -268,7 +268,7 @@ export const ReviewQueueView: React.FC = () => {
                       </div>
                     </div>
                     <div className="mono" style={{ fontWeight: 600 }}>
-                      {item.quantity} units @ ${item.unit_price.toFixed(2)} = ${item.total_price.toFixed(2)}
+                      {item.quantity} units @ ${Number(item.unit_price ?? 0).toFixed(2)} = ${Number(item.total_price ?? 0).toFixed(2)}
                     </div>
                   </div>
                 ))}

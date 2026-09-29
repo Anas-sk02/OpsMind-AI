@@ -241,24 +241,35 @@ export const InventoryView: React.FC = () => {
                     )}
                   </td>
                   <td className="mono" style={{ fontWeight: 600 }}>
-                    ${prod.price.toFixed(2)}
+                    ${Number(prod.price ?? 0).toFixed(2)}
                   </td>
-                  <td className="mono" style={{ fontWeight: 700, color: prod.available_qty <= prod.reorder_level ? '#f87171' : 'var(--accent-emerald)' }}>
-                    {prod.available_qty}
+                  <td
+                    className="mono"
+                    style={{
+                      fontWeight: 700,
+                      color:
+                        Number(prod.available_qty ?? 0) <= Number(prod.reorder_level ?? 10)
+                          ? '#f87171'
+                          : 'var(--accent-emerald)',
+                    }}
+                  >
+                    {Number(prod.available_qty ?? 0)}
                   </td>
                   <td className="mono" style={{ color: 'var(--accent-amber)' }}>
-                    {prod.reserved_qty}
+                    {Number(prod.reserved_qty ?? 0)}
                   </td>
-                  <td className="mono">{prod.total_qty}</td>
+                  <td className="mono">
+                    {prod.total_qty ?? (Number(prod.available_qty ?? 0) + Number(prod.reserved_qty ?? 0))}
+                  </td>
                   <td className="mono" style={{ color: 'var(--text-muted)' }}>
-                    {prod.reorder_level}
+                    {Number(prod.reorder_level ?? 10)}
                   </td>
                   <td>
-                    {prod.available_qty === 0 ? (
+                    {Number(prod.available_qty ?? 0) === 0 ? (
                       <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                         <span className="badge-dot" style={{ background: '#ef4444' }} /> Depleted
                       </span>
-                    ) : prod.is_low_stock ? (
+                    ) : prod.is_low_stock || Number(prod.available_qty ?? 0) <= Number(prod.reorder_level ?? 10) ? (
                       <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
                         <span className="badge-dot" style={{ background: '#f59e0b' }} /> Low Stock
                       </span>

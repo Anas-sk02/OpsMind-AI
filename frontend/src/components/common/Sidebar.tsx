@@ -62,6 +62,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         flexDirection: 'column',
         padding: '1.25rem 0.75rem',
         flexShrink: 0,
+        height: '100%',
+        overflowY: 'auto',
       }}
     >
       <div style={{ marginBottom: '1rem', padding: '0 0.5rem' }}>
