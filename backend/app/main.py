@@ -13,6 +13,8 @@ from app.core.database import engine
 from app.core.exceptions import register_exception_handlers
 from app.schemas.common import HealthResponse
 
+from app.init_db import init_database
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO if not settings.DEBUG else logging.DEBUG,
@@ -27,6 +29,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Application lifespan manager for startup and graceful shutdown hooks.
     """
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION} [{settings.ENVIRONMENT}]")
+    try:
+        await init_database()
+    except Exception as exc:
+        logger.warning(f"Database initialization hook warning (will retry on query): {exc}")
     yield
     logger.info("Shutting down application and disposing database connection pools...")
     await engine.dispose()

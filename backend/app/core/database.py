@@ -21,6 +21,8 @@ class Base(DeclarativeBase):
     pass
 
 
+import ssl
+
 # Database engine configuration
 engine_kwargs = {
     "echo": settings.DB_ECHO,
@@ -36,8 +38,11 @@ if not settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
     })
     # If using Supabase or SSL mode is specified
     if "supabase" in settings.SQLALCHEMY_DATABASE_URI or settings.DB_SSL_MODE:
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
         engine_kwargs["connect_args"] = {
-            "ssl": True
+            "ssl": ssl_ctx
         }
 
 engine: AsyncEngine = create_async_engine(
