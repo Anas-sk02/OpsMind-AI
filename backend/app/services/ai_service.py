@@ -198,21 +198,48 @@ class AIService:
 
         # Extract Shipping Address
         shipping_addr: Optional[str] = None
+        lines = [line.strip() for line in body.split("\n") if line.strip()]
+
         addr_match = re.search(
-            r"(?:deliver to|ship to|shipping address|address|adresse|dirección de envío|dirección|envío a|पता|عنوان)[:\s]+([^\n\r]+)",
+            r"\b(?:deliver to|ship to|shipping address|address|adresse|dirección de envío|dirección|envío a|पता|عنوان)\b[:\s]+([^\n\r]+)",
             full_text,
             re.IGNORECASE,
         )
         if addr_match:
             raw_addr = addr_match.group(1).strip()
-            # Clean trailing words
-            raw_addr = re.sub(r"\s*(?:thanks|saludos|merci|danke|regards).*$", "", raw_addr, flags=re.IGNORECASE).strip()
-            shipping_addr = raw_addr
-        elif "street" in lower_text or "avenue" in lower_text or "road" in lower_text or "way" in lower_text:
-            for line in body.split("\n"):
-                if any(k in line.lower() for k in ["street", "ave", "st", "road", "rd", "blvd", "lane"]):
-                    shipping_addr = line.strip()
-                    break
+            # If match was a header phrase like "our headquarters:" or "this address:", look at the next line
+            if any(h in raw_addr.lower() for h in ["our headquarters", "our office", "following address", "below address"]) or len(raw_addr) < 4:
+                # Find line index and check next line
+                for idx, line in enumerate(lines):
+                    if any(h in line.lower() for h in ["headquarters", "address", "deliver", "ship to", "dirección"]):
+                        if idx + 1 < len(lines):
+                            shipping_addr = lines[idx + 1]
+                            break
+            else:
+                raw_addr = re.sub(r"\s*(?:thanks|saludos|merci|danke|regards).*$", "", raw_addr, flags=re.IGNORECASE).strip()
+                shipping_addr = raw_addr
+
+        if not shipping_addr:
+            # Search lines for street patterns or "to <address>" clauses
+            street_keywords = [
+                "street", "ave", "avenue", "st", "st.", "road", "rd", "blvd", "lane",
+                "terrace", "broadway", "way", "gran via", "calle", "rue", "straße",
+                "strasse", "reforma", "floor", "suite", "penn", "drive", "dr", "manor", "park"
+            ]
+            for line in lines:
+                lower_line = line.lower()
+                if any(k in lower_line for k in street_keywords):
+                    # If line has "to <address>", isolate the address part with strict word boundaries
+                    sub_match = re.search(r"\b(?:to|at|in|en|an|adresse|dirección)\b[:\s]+(\d+[\s\w,\.\-]+|(?:[A-Z][\w\s]+(?:Manor|Street|Ave|Road|Blvd|Terrace|Way|City|Lane|Suite|Floor)[\w\s,\.\-]*))", line, re.IGNORECASE)
+                    if sub_match:
+                        shipping_addr = sub_match.group(1).strip()
+                    elif not any(skip in lower_line for skip in ["please send", "please ship", "i need", "order 10x", "order 2x", "sku-"]):
+                        shipping_addr = line
+                    if shipping_addr:
+                        break
+
+
+
 
         # Extract Customer Name
         sender_name: Optional[str] = None
@@ -233,14 +260,30 @@ class AIService:
         # Extract Line Items
         items: List[ExtractedOrderItem] = []
 
+        # Prepare clean item search text: remove address lines and phone numbers to avoid false positive item matches
+        cleaned_search_text = body
+        if shipping_addr:
+            cleaned_search_text = cleaned_search_text.replace(shipping_addr, " ")
+        if sender_phone:
+            cleaned_search_text = cleaned_search_text.replace(sender_phone, " ")
+
+        # Remove phone regex patterns from search text
+        cleaned_search_text = re.sub(r"(?:phone|tel|mobile)?[:\s]*\+?\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}", " ", cleaned_search_text, flags=re.IGNORECASE)
+
         item_patterns = [
-            r"(\d+)\s*(?:x|units of|pcs of|pieces of|unidades de|exemplaires de|stücke)?\s+([A-Za-z0-9\-\s]{3,40}?)(?=\n|\.|$|,|\s+(?:para|for|pour|für|an|to))",
-            r"([A-Za-z0-9\-\s]{3,40}?)\s*[:\-]\s*(\d+)\s*(?:units|pcs|qty|pieces)?",
-            r"(?:order|buy|purchase|quiero pedir|pedir|veuillez envoyer|bitte)\s+(\d+)\s*(?:x|unidades de|exemplaires de)?\s+([A-Za-z0-9\-\s]{3,40}?)(?=\n|\.|$|,|\s+(?:para|for|pour|für|an|to))",
+            r"(?:order|buy|purchase|quiero pedir|pedir|veuillez envoyer|bitte|please send|please ship|send|ship|deliver|por favor enviar|enviar)?\s*(\d+)\s*(?:x|units of|pcs of|pieces of|unidades de|exemplaires de|stücke)?\s+([A-Za-z0-9\-_]+(?:\s+[A-Za-z0-9\-_]+)*?)(?=\s+(?:and|y|et|und|plus|\+|to|at|in|en|an|for|para|pour|für|deliver|ship|a nuestra|a mi)\b|[\n,\.]|$)",
+            r"([A-Za-z0-9\-_]+(?:\s+[A-Za-z0-9\-_]+)*?)\s*(?::|\s+-\s+|\s+qty\s*[:=]?\s*)\s*(\d+)\s*(?:units|pcs|qty|pieces|unidades|stücke)?",
+        ]
+
+        # Ignore words that indicate an address or contact clause rather than a product
+        non_product_keywords = [
+            "terrace", "street", "avenue", "road", "blvd", "lane", "broadway", "floor", "suite",
+            "springfield", "new york", "madrid", "paris", "berlin", "headquarters", "office", "phone",
+            "wayne manor", "gotham", "main street"
         ]
 
         for pat in item_patterns:
-            matches = re.findall(pat, body, re.IGNORECASE)
+            matches = re.findall(pat, cleaned_search_text, re.IGNORECASE)
             for m in matches:
                 if len(m) == 2:
                     if m[0].isdigit():
@@ -253,11 +296,20 @@ class AIService:
                         continue
 
                     # Filter noise prefixes and trailing clauses
-                    raw_q = re.sub(r"^(?:please send|i need|order for|deliver|pedir|unidades de|exemplaires de)\s+", "", raw_q, flags=re.IGNORECASE).strip()
+                    raw_q = re.sub(r"^(?:please ship|please send|ship|send|i need|order for|deliver|pedir|unidades de|exemplaires de|por favor enviar|enviar)\s+", "", raw_q, flags=re.IGNORECASE).strip()
+                    raw_q = re.sub(r"^\d+\s*x\s*", "", raw_q, flags=re.IGNORECASE).strip()
                     raw_q = re.sub(r"\s+(?:para|for|pour|für|an|to|with|con)\s+.*$", "", raw_q, flags=re.IGNORECASE).strip()
                     
-                    if raw_q and len(raw_q) >= 2 and qty > 0 and not any(it.raw_product_query.lower() == raw_q.lower() for it in items):
+                    # Ignore non-product keywords, unreasonable quantities (> 10000), or empty strings
+                    if (
+                        raw_q
+                        and len(raw_q) >= 2
+                        and 0 < qty <= 10000
+                        and not any(np in raw_q.lower() for np in non_product_keywords)
+                        and not any(it.raw_product_query.lower() == raw_q.lower() for it in items)
+                    ):
                         items.append(ExtractedOrderItem(raw_product_query=raw_q, quantity=qty))
+
 
         # Adjust confidence
         if is_order and not items:

@@ -7,6 +7,8 @@ from app.api.v1.admin_inventory import router as admin_inventory_router
 from app.api.v1.admin_orders import router as admin_orders_router
 from app.api.v1.employee_tasks import router as employee_tasks_router
 from app.api.v1.ai import router as ai_router
+from app.api.v1.webhooks import router as webhooks_router
+from app.api.v1.admin_emails import router as admin_emails_router
 
 api_v1_router = APIRouter()
 
@@ -33,6 +35,13 @@ api_v1_router.include_router(employee_tasks_router, tags=["Employee & Warehouse 
 
 # AI Extraction & Guardrails
 api_v1_router.include_router(ai_router, tags=["AI & Extraction"])
+
+# Inbound Email Webhooks
+api_v1_router.include_router(webhooks_router, tags=["Inbound Email Webhooks"])
+
+# Admin Email Communications Audit
+api_v1_router.include_router(admin_emails_router, tags=["Admin Email Audit"])
+
 
 
 

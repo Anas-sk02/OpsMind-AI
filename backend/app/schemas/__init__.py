@@ -50,6 +50,11 @@ from app.schemas.ai_extraction import (
     OutboundSynthesisRequest,
     OutboundSynthesisResponse,
 )
+from app.schemas.email_webhook import (
+    InboundEmailWebhookRequest,
+    InboundEmailWebhookResponse,
+    EmailMessageResponse,
+)
 
 __all__ = [
     "ApiResponse",
@@ -90,5 +95,9 @@ __all__ = [
     "EntityMatchItem",
     "OutboundSynthesisRequest",
     "OutboundSynthesisResponse",
+    "InboundEmailWebhookRequest",
+    "InboundEmailWebhookResponse",
+    "EmailMessageResponse",
 ]
+
 
