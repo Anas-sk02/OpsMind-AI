@@ -47,11 +47,10 @@ export const PackagingPortal: React.FC = () => {
   const selectTask = (task: Task) => {
     setActiveTask(task);
     const initialChecked: Record<string, boolean> = {};
-    if (task.order?.items) {
-      task.order.items.forEach((item) => {
-        initialChecked[item.id] = false;
-      });
-    }
+    const taskItems = task.items || task.order?.items || [];
+    taskItems.forEach((item) => {
+      initialChecked[item.id] = false;
+    });
     setCheckedItems(initialChecked);
   };
 
@@ -62,9 +61,10 @@ export const PackagingPortal: React.FC = () => {
     }));
   };
 
+  const activeItems = activeTask?.items || activeTask?.order?.items || [];
   const allItemsChecked =
-    activeTask?.order?.items && activeTask.order.items.length > 0
-      ? activeTask.order.items.every((i) => checkedItems[i.id])
+    activeItems.length > 0
+      ? activeItems.every((i) => checkedItems[i.id])
       : true;
 
   const handleCompletePackaging = async () => {
@@ -199,7 +199,7 @@ export const PackagingPortal: React.FC = () => {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <span className="mono" style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                        {task.order?.order_number || `Order ${task.order_id.slice(0, 8)}`}
+                        {task.order_number || task.order?.order_number || `Order ${task.order_id.slice(0, 8)}`}
                       </span>
                       <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: 'var(--accent-blue)' }}>
                         {task.status}
@@ -207,7 +207,9 @@ export const PackagingPortal: React.FC = () => {
                     </div>
 
                     <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                      {task.order?.items ? `${task.order.items.length} SKUs to pack` : 'Items checklist ready'}
+                      {(task.items || task.order?.items)?.length
+                        ? `${(task.items || task.order?.items)!.length} SKUs to pack`
+                        : 'Items checklist ready'}
                     </div>
                   </div>
                 );
@@ -232,12 +234,12 @@ export const PackagingPortal: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <h2 className="mono" style={{ fontSize: '1.375rem' }}>
-                      {activeTask.order?.order_number || `Order ${activeTask.order_id.slice(0, 8)}`}
+                      {activeTask.order_number || activeTask.order?.order_number || `Order ${activeTask.order_id.slice(0, 8)}`}
                     </h2>
-                    <StatusBadge status={activeTask.order?.status || 'PACKAGING'} />
+                    <StatusBadge status={activeTask.order_status || activeTask.order?.status || 'PACKAGING'} />
                   </div>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Recipient: {activeTask.order?.customer_name} | {activeTask.order?.shipping_address}
+                    Recipient: {activeTask.customer_name || activeTask.order?.customer_name || 'Customer'} | {activeTask.delivery_address || activeTask.order?.shipping_address || 'Warehouse Pick'}
                   </div>
                 </div>
 
@@ -266,8 +268,8 @@ export const PackagingPortal: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {activeTask.order?.items && activeTask.order.items.length > 0 ? (
-                    activeTask.order.items.map((item) => {
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item) => {
                       const isChecked = checkedItems[item.id] || false;
                       return (
                         <div
@@ -295,7 +297,7 @@ export const PackagingPortal: React.FC = () => {
                             <div>
                               <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{item.product_name}</div>
                               <div className="mono" style={{ fontSize: '0.8125rem', color: 'var(--accent-cyan)' }}>
-                                SKU: {item.sku}
+                                SKU: {item.product_sku || (item as any).sku}
                               </div>
                             </div>
                           </div>

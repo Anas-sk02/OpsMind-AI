@@ -253,18 +253,34 @@ class ApiClient {
     return res.data;
   }
 
+  async getTaskDetails(taskId: string): Promise<Task> {
+    const res = await this.request<Task>(`/employee/tasks/${taskId}`);
+    return res.data;
+  }
+
+  async startTask(taskId: string): Promise<any> {
+    const res = await this.request(`/employee/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_status: 'IN_PROGRESS' }),
+    });
+    return res.data;
+  }
+
   async completeTask(taskId: string, payload?: Record<string, any>): Promise<any> {
-    const res = await this.request(`/employee/tasks/${taskId}/complete`, {
-      method: 'POST',
-      body: JSON.stringify(payload || {}),
+    const res = await this.request(`/employee/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        new_status: 'COMPLETED',
+        exception_notes: payload?.notes || null,
+      }),
     });
     return res.data;
   }
 
   async reportTaskException(taskId: string, reason: string): Promise<any> {
-    const res = await this.request(`/employee/tasks/${taskId}/exception`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
+    const res = await this.request(`/employee/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_status: 'EXCEPTION', exception_notes: reason }),
     });
     return res.data;
   }

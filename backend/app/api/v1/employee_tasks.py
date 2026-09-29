@@ -21,7 +21,7 @@ router = APIRouter(tags=["Employee & Warehouse Tasks"])
 
 @router.get(
     "/employee/tasks/my",
-    response_model=PaginatedResponse[TaskResponse],
+    response_model=PaginatedResponse[TaskWithOrderResponse],
     summary="List tasks assigned to the currently authenticated operator",
 )
 async def list_my_tasks(
@@ -87,6 +87,48 @@ async def update_task_status(
     return ApiResponse(
         data=updated,
         message=f"Task {task_id} successfully transitioned to '{updated.status}'",
+    )
+
+
+@router.post(
+    "/employee/tasks/{task_id}/complete",
+    response_model=ApiResponse[TaskWithOrderResponse],
+    summary="Convenience endpoint to complete task with optional notes",
+)
+async def complete_task_endpoint(
+    task_id: uuid.UUID = Path(..., description="Target task UUID"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
+):
+    payload = UpdateTaskStatusRequest(new_status="COMPLETED")
+    updated = await TaskService.update_task_status(
+        db, task_id=task_id, data=payload, actor=current_user
+    )
+    return ApiResponse(
+        data=updated,
+        message=f"Task {task_id} marked COMPLETED",
+    )
+
+
+@router.post(
+    "/employee/tasks/{task_id}/exception",
+    response_model=ApiResponse[TaskWithOrderResponse],
+    summary="Convenience endpoint to mark task as EXCEPTION with notes",
+)
+async def report_task_exception_endpoint(
+    task_id: uuid.UUID = Path(..., description="Target task UUID"),
+    reason: Optional[dict] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
+):
+    notes = reason.get("reason") if isinstance(reason, dict) else "Task exception reported"
+    payload = UpdateTaskStatusRequest(new_status="EXCEPTION", exception_notes=notes)
+    updated = await TaskService.update_task_status(
+        db, task_id=task_id, data=payload, actor=current_user
+    )
+    return ApiResponse(
+        data=updated,
+        message=f"Task {task_id} marked EXCEPTION",
     )
 
 

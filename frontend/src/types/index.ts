@@ -50,7 +50,8 @@ export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
-  sku: string;
+  sku?: string;
+  product_sku?: string;
   product_name: string;
   quantity: number;
   unit_price: number;
@@ -72,13 +73,19 @@ export interface OrderEvent {
 export interface Task {
   id: string;
   order_id: string;
-  assigned_employee_id: string;
+  order_number?: string;
+  assigned_employee_id?: string;
   assigned_employee_name?: string;
   task_type: 'PACKAGING' | 'DELIVERY';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'EXCEPTION' | 'FAILED' | 'CANCELLED';
   exception_notes?: string | null;
   created_at: string;
   completed_at?: string | null;
+  customer_name?: string;
+  customer_email?: string;
+  delivery_address?: string;
+  order_status?: string;
+  items?: OrderItem[];
   order?: Order;
 }
 

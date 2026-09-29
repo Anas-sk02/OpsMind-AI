@@ -413,11 +413,12 @@ class TaskService:
         task_type: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
-    ) -> Tuple[List[TaskResponse], int]:
+    ) -> Tuple[List[TaskWithOrderResponse], int]:
         query = (
             select(Task)
             .options(
-                selectinload(Task.order),
+                selectinload(Task.order).selectinload(Order.customer),
+                selectinload(Task.order).selectinload(Order.items).selectinload(OrderItem.product),
                 selectinload(Task.assigned_employee),
             )
             .where(Task.assigned_employee_id == employee_id)
@@ -439,7 +440,7 @@ class TaskService:
         res = await db.execute(query)
         tasks = res.scalars().all()
 
-        return [TaskService._to_task_response(t) for t in tasks], total
+        return [TaskService._to_task_with_order_response(t) for t in tasks], total
 
     @staticmethod
     async def list_all_tasks(

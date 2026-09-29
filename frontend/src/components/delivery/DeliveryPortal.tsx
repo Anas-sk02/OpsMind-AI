@@ -51,10 +51,10 @@ export const DeliveryPortal: React.FC = () => {
   }, []);
 
   const handleStartDelivery = async () => {
-    if (!activeTask || !activeTask.order) return;
+    if (!activeTask) return;
     setIsSubmitting(true);
     try {
-      await api.updateOrderStatus(activeTask.order.id, 'OUT_FOR_DELIVERY', 'Driver started transit');
+      await api.startTask(activeTask.id);
       await fetchMyTasks();
     } catch (err: any) {
       alert(`Failed to start delivery: ${err.message}`);
@@ -201,17 +201,17 @@ export const DeliveryPortal: React.FC = () => {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <span className="mono" style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                        #{idx + 1} — {task.order?.order_number || `Order ${task.order_id.slice(0, 8)}`}
+                        #{idx + 1} — {task.order_number || task.order?.order_number || `Order ${task.order_id.slice(0, 8)}`}
                       </span>
-                      <StatusBadge status={task.order?.status || 'PACKED'} />
+                      <StatusBadge status={task.order_status || task.order?.status || 'PACKED'} />
                     </div>
 
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {task.order?.customer_name || 'Customer'}
+                      {task.customer_name || task.order?.customer_name || 'Customer'}
                     </div>
 
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {task.order?.shipping_address}
+                      {task.delivery_address || task.order?.shipping_address}
                     </div>
                   </div>
                 );
@@ -236,9 +236,9 @@ export const DeliveryPortal: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <h2 className="mono" style={{ fontSize: '1.375rem' }}>
-                      {activeTask.order?.order_number || `Order ${activeTask.order_id.slice(0, 8)}`}
+                      {activeTask.order_number || activeTask.order?.order_number || `Order ${activeTask.order_id.slice(0, 8)}`}
                     </h2>
-                    <StatusBadge status={activeTask.order?.status || 'PACKED'} />
+                    <StatusBadge status={activeTask.order_status || activeTask.order?.status || 'PACKED'} />
                   </div>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                     Task ID: {activeTask.id}
@@ -272,18 +272,22 @@ export const DeliveryPortal: React.FC = () => {
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                       Customer Contact
                     </div>
-                    <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>{activeTask.order?.customer_name || 'Customer'}</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{activeTask.order?.customer_email}</div>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>
+                      {activeTask.customer_name || activeTask.order?.customer_name || 'Customer'}
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                      {activeTask.customer_email || activeTask.order?.customer_email}
+                    </div>
                   </div>
 
-                  {activeTask.order?.customer_phone && (
+                  {(activeTask.order?.customer_phone || (activeTask as any).customer_phone) && (
                     <a
-                      href={`tel:${activeTask.order.customer_phone}`}
+                      href={`tel:${activeTask.order?.customer_phone || (activeTask as any).customer_phone}`}
                       className="btn btn-secondary"
                       style={{ marginTop: '1rem', color: 'var(--accent-cyan)' }}
                     >
                       <Phone size={15} />
-                      <span>Call {activeTask.order.customer_phone}</span>
+                      <span>Call {activeTask.order?.customer_phone || (activeTask as any).customer_phone}</span>
                     </a>
                   )}
                 </div>
@@ -304,12 +308,12 @@ export const DeliveryPortal: React.FC = () => {
                       Destination Address
                     </div>
                     <p style={{ fontSize: '0.9375rem', lineHeight: 1.4, color: 'var(--text-primary)' }}>
-                      {activeTask.order?.shipping_address}
+                      {activeTask.delivery_address || activeTask.order?.shipping_address || 'Delivery Address'}
                     </p>
                   </div>
 
                   <a
-                    href={openMapsUrl(activeTask.order?.shipping_address || '')}
+                    href={openMapsUrl(activeTask.delivery_address || activeTask.order?.shipping_address || '')}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary"
@@ -325,9 +329,9 @@ export const DeliveryPortal: React.FC = () => {
               {/* Items Summary in Package */}
               <div style={{ marginBottom: '2rem' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                  Package Contents ({activeTask.order?.items?.length || 0} items)
+                  Package Contents ({(activeTask.items || activeTask.order?.items)?.length || 0} items)
                 </div>
-                {activeTask.order?.items?.map((item) => (
+                {(activeTask.items || activeTask.order?.items)?.map((item) => (
                   <div
                     key={item.id}
                     style={{
@@ -344,7 +348,7 @@ export const DeliveryPortal: React.FC = () => {
                     <div>
                       <div style={{ fontWeight: 600 }}>{item.product_name}</div>
                       <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>
-                        SKU: {item.sku}
+                        SKU: {item.product_sku || (item as any).sku}
                       </div>
                     </div>
                     <div className="mono" style={{ fontWeight: 700 }}>
