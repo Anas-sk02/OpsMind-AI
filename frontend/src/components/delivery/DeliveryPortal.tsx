@@ -360,7 +360,25 @@ export const DeliveryPortal: React.FC = () => {
 
               {/* Step-by-Step Delivery Action Progression */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                {activeTask.order?.status !== 'OUT_FOR_DELIVERY' ? (
+                {(activeTask.order_status === 'OUT_FOR_DELIVERY' ||
+                  activeTask.order?.status === 'OUT_FOR_DELIVERY' ||
+                  activeTask.status === 'IN_PROGRESS') ? (
+                  <button
+                    onClick={() => setIsConfirmOpen(true)}
+                    disabled={isSubmitting}
+                    className="btn btn-success"
+                    style={{
+                      padding: '1rem',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      gridColumn: 'span 2',
+                      boxShadow: '0 0 20px rgba(16, 185, 129, 0.3)',
+                    }}
+                  >
+                    <CheckCheck size={20} />
+                    <span>CONFIRM DELIVERY (MARK AS DELIVERED)</span>
+                  </button>
+                ) : (
                   <button
                     onClick={handleStartDelivery}
                     disabled={isSubmitting}
@@ -376,22 +394,6 @@ export const DeliveryPortal: React.FC = () => {
                   >
                     <Truck size={20} />
                     <span>START DELIVERY ROUTE (OUT FOR DELIVERY)</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsConfirmOpen(true)}
-                    disabled={isSubmitting}
-                    className="btn btn-success"
-                    style={{
-                      padding: '1rem',
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      gridColumn: 'span 2',
-                      boxShadow: '0 0 20px rgba(16, 185, 129, 0.3)',
-                    }}
-                  >
-                    <CheckCheck size={20} />
-                    <span>CONFIRM DELIVERY (DELIVERED)</span>
                   </button>
                 )}
               </div>
