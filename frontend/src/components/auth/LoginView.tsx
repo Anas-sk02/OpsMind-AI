@@ -5,8 +5,8 @@ import type { UserRole } from '../../types';
 
 export const LoginView: React.FC = () => {
   const { login, quickSwitchRole } = useAuth();
-  const [email, setEmail] = useState('admin@opsmind.io');
-  const [password, setPassword] = useState('Admin@123456!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
