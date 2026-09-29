@@ -68,24 +68,21 @@ class ApiClient {
   }
 
   // Auth Endpoints
-  async login(email: string, password: string): Promise<{ access_token: string; refresh_token: string; user: User }> {
-    const formData = new URLSearchParams();
-    formData.append('username', email);
-    formData.append('password', password);
-
+  async login(email: string, password: string): Promise<{ access_token: string; refresh_token?: string; user: User }> {
     const response = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
     });
 
-    const json = await response.json();
+    const json = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(json?.error?.message || json?.detail || 'Login failed');
     }
 
-    this.setToken(json.access_token);
-    return json;
+    const tokenData = json.data || json;
+    this.setToken(tokenData.access_token);
+    return tokenData;
   }
 
   async getMe(): Promise<User> {
