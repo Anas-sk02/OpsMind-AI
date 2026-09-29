@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Zap, ShieldCheck, Box, Truck, ArrowRight, AlertCircle } from 'lucide-react';
-import type { UserRole } from '../../types';
+import { Zap, ArrowRight, AlertCircle, Lock } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -20,19 +19,6 @@ export const LoginView: React.FC = () => {
       setError(err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQuickRole = (role: UserRole) => {
-    if (role === 'ADMIN') {
-      setEmail('admin@opsmind.io');
-      setPassword('Admin@123456!');
-    } else if (role === 'PACKAGING') {
-      setEmail('packager1@opsmind.io');
-      setPassword('Packager@123456!');
-    } else if (role === 'DELIVERY') {
-      setEmail('driver1@opsmind.io');
-      setPassword('Driver@123456!');
     }
   };
 
@@ -108,7 +94,7 @@ export const LoginView: React.FC = () => {
               className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="operator@opsmind.io"
+              placeholder="name@opsmind.io"
             />
           </div>
 
@@ -128,61 +114,18 @@ export const LoginView: React.FC = () => {
             type="submit"
             disabled={loading}
             className="btn btn-primary"
-            style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }}
+            style={{ width: '100%', padding: '0.75rem', marginTop: '0.75rem' }}
           >
             {loading ? 'Authenticating...' : 'Sign In to Workspace'}
             {!loading && <ArrowRight size={16} />}
           </button>
         </form>
 
-        {/* Quick Fill Helpers (Does not bypass login) */}
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-          <div
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              textAlign: 'center',
-              marginBottom: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
-            Click to fill demo credentials
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            <button
-              onClick={() => handleQuickRole('ADMIN')}
-              type="button"
-              className="btn btn-secondary"
-              title="Fill Admin Credentials"
-              style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
-            >
-              <ShieldCheck size={16} color="var(--accent-cyan)" />
-              <span>Admin</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickRole('PACKAGING')}
-              type="button"
-              className="btn btn-secondary"
-              title="Fill Packager Credentials"
-              style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
-            >
-              <Box size={16} color="var(--accent-blue)" />
-              <span>Packager</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickRole('DELIVERY')}
-              type="button"
-              className="btn btn-secondary"
-              title="Fill Driver Credentials"
-              style={{ padding: '0.5rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
-            >
-              <Truck size={16} color="var(--accent-amber)" />
-              <span>Driver</span>
-            </button>
+        {/* Secure Workspace Notice */}
+        <div style={{ marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <Lock size={12} />
+            <span>Authorized Personnel Access Only • RBAC Protected</span>
           </div>
         </div>
       </div>
