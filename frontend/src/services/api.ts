@@ -57,10 +57,13 @@ class ApiClient {
     const json = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errorMsg =
-        json?.error?.message ||
-        json?.detail ||
-        `Request failed with status ${response.status}`;
+      let errorMsg = json?.error?.message || json?.detail || `Request failed with status ${response.status}`;
+      if (json?.error?.details && Array.isArray(json.error.details) && json.error.details.length > 0) {
+        const fieldErrors = json.error.details.map((d: any) => d.message || d.msg).filter(Boolean);
+        if (fieldErrors.length > 0) {
+          errorMsg = fieldErrors.join(' • ');
+        }
+      }
       throw new Error(errorMsg);
     }
 
@@ -69,20 +72,41 @@ class ApiClient {
 
   // Auth Endpoints
   async login(email: string, password: string): Promise<{ access_token: string; refresh_token?: string; user: User }> {
-    const response = await fetch(`${BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
 
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(json?.error?.message || json?.detail || 'Login failed');
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error(json?.error?.message || 'Incorrect email or password. Please verify your credentials.');
+        }
+        if (response.status === 422) {
+          const details = json?.error?.details || json?.detail;
+          if (Array.isArray(details) && details.length > 0) {
+            const detailMsg = details.map((d: any) => d.message || d.msg).filter(Boolean).join(', ');
+            throw new Error(`Validation Error: ${detailMsg || 'Please enter a valid email and password format.'}`);
+          }
+          throw new Error(json?.error?.message || 'Please provide a valid work email and password.');
+        }
+        if (response.status === 403) {
+          throw new Error(json?.error?.message || 'Account access restricted. Please contact your system administrator.');
+        }
+        throw new Error(json?.error?.message || json?.detail || `Authentication failed (Status ${response.status})`);
+      }
+
+      const tokenData = json.data || json;
+      this.setToken(tokenData.access_token);
+      return tokenData;
+    } catch (err: any) {
+      if (err.name === 'TypeError' && err.message?.includes('fetch')) {
+        throw new Error('Unable to connect to OpsMind server. Please verify your network connection.');
+      }
+      throw err;
     }
-
-    const tokenData = json.data || json;
-    this.setToken(tokenData.access_token);
-    return tokenData;
   }
 
   async getMe(): Promise<User> {
