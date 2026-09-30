@@ -217,6 +217,11 @@ class ApiClient {
     return res.data;
   }
 
+  async getEmployeeWorkloadMetrics(): Promise<any[]> {
+    const res = await this.request<any[]>('/admin/tasks/workload-metrics');
+    return res.data;
+  }
+
   async createEmployee(data: {
     email: string;
     password: string;

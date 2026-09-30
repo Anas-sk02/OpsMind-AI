@@ -35,12 +35,28 @@ export const EmployeesView: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [empData, taskData] = await Promise.all([
+      const [empData, taskData, metricsData] = await Promise.all([
         api.getEmployees(),
         api.getAllTasks({ status: 'PENDING', page_size: 50 }),
+        api.getEmployeeWorkloadMetrics().catch(() => []),
       ]);
-      setEmployees(empData || []);
-      setTasks(taskData.data || []);
+
+      const metricsMap = new Map((metricsData || []).map((m: any) => [m.employee_id, m.active_tasks]));
+      const taskList = taskData.data || [];
+
+      const enrichedEmployees = (empData || []).map((emp) => {
+        const fallbackCount = taskList.filter(
+          (t) => t.assigned_employee_id === emp.id && ['PENDING', 'IN_PROGRESS'].includes(t.status)
+        ).length;
+        const activeCount = metricsMap.has(emp.id) ? (metricsMap.get(emp.id) ?? 0) : fallbackCount;
+        return {
+          ...emp,
+          active_tasks_count: Math.max(activeCount, fallbackCount),
+        };
+      });
+
+      setEmployees(enrichedEmployees);
+      setTasks(taskList);
     } catch (err) {
       console.error('Failed to load employees & tasks:', err);
     } finally {
@@ -130,7 +146,10 @@ export const EmployeesView: React.FC = () => {
         }}
       >
         {employees.map((emp) => {
-          const activeTasksCount = emp.active_tasks_count ?? 0;
+          const fallbackCount = tasks.filter(
+            (t) => t.assigned_employee_id === emp.id && ['PENDING', 'IN_PROGRESS'].includes(t.status)
+          ).length;
+          const activeTasksCount = Math.max(emp.active_tasks_count ?? 0, fallbackCount);
           const maxCapacity = 5; // Visual baseline
           const percent = Math.min((activeTasksCount / maxCapacity) * 100, 100);
 
