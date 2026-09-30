@@ -88,27 +88,35 @@ const MainLayout: React.FC = () => {
         <Sidebar activeTab={adminTab} onSelectTab={setAdminTab} />
         <main className="main-content">
           <ErrorBoundary fallbackTitle="Admin Portal Error">
-            {adminTab === 'dashboard' && (
+            <div style={{ display: adminTab === 'dashboard' ? 'block' : 'none' }}>
               <AdminDashboard
                 onNavigateTab={setAdminTab}
                 onViewOrder={handleViewOrder}
               />
-            )}
+            </div>
 
-            {adminTab === 'orders' && (
+            <div style={{ display: adminTab === 'orders' ? 'block' : 'none' }}>
               <OrdersView
                 selectedOrderModal={selectedOrderForModal}
                 onCloseModal={() => setSelectedOrderForModal(null)}
               />
-            )}
+            </div>
 
-            {adminTab === 'review_queue' && <ReviewQueueView />}
+            <div style={{ display: adminTab === 'review_queue' ? 'block' : 'none' }}>
+              <ReviewQueueView />
+            </div>
 
-            {adminTab === 'inventory' && <InventoryView />}
+            <div style={{ display: adminTab === 'inventory' ? 'block' : 'none' }}>
+              <InventoryView />
+            </div>
 
-            {adminTab === 'employees' && <EmployeesView />}
+            <div style={{ display: adminTab === 'employees' ? 'block' : 'none' }}>
+              <EmployeesView />
+            </div>
 
-            {adminTab === 'emails' && <EmailAuditView />}
+            <div style={{ display: adminTab === 'emails' ? 'block' : 'none' }}>
+              <EmailAuditView />
+            </div>
           </ErrorBoundary>
         </main>
       </div>

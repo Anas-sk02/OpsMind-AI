@@ -117,30 +117,8 @@ class ApiClient {
   // Dashboard / Metrics
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     try {
-      const [ordersRes, reviewRes, lowStockRes, tasksRes] = await Promise.all([
-        this.getOrders({ page_size: 100 }),
-        this.getOrders({ status: 'NEEDS_REVIEW', page_size: 100 }),
-        this.getProducts({ low_stock_only: true, page_size: 100 }),
-        this.getAllTasks({ status: 'PENDING', page_size: 100 }),
-      ]);
-
-      const orders = ordersRes.data || [];
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const activeOrders = orders.filter(
-        (o) => !['DELIVERED', 'CANCELLED'].includes(o.status)
-      ).length;
-      const packagingTasks = (tasksRes.data || []).filter((t) => t.task_type === 'PACKAGING').length;
-      const deliveryTasks = (tasksRes.data || []).filter((t) => t.task_type === 'DELIVERY').length;
-
-      return {
-        total_orders: ordersRes.meta?.total ?? orders.length,
-        active_orders: activeOrders,
-        pending_packaging: packagingTasks,
-        out_for_delivery: deliveryTasks,
-        needs_review_count: reviewRes.meta?.total ?? reviewRes.data?.length ?? 0,
-        low_stock_count: lowStockRes.meta?.total ?? lowStockRes.data?.length ?? 0,
-        total_revenue: totalRevenue,
-      };
+      const res = await this.request<DashboardMetrics>('/admin/orders/metrics/summary');
+      return res.data;
     } catch {
       return {
         total_orders: 0,

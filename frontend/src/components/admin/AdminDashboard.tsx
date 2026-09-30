@@ -190,7 +190,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
           marginBottom: '2rem',
         }}
@@ -206,6 +206,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 padding: '1.25rem',
                 cursor: 'pointer',
                 borderColor: card.highlight ? 'rgba(239, 68, 68, 0.4)' : undefined,
+                minWidth: 0,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
               }}
             >
               <div
@@ -214,9 +219,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   marginBottom: '0.75rem',
+                  minWidth: 0,
                 }}
               >
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                <span
+                  style={{
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 500,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginRight: '0.5rem',
+                  }}
+                  title={card.title}
+                >
                   {card.title}
                 </span>
                 <div
@@ -229,6 +246,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: card.color,
+                    flexShrink: 0,
                   }}
                 >
                   <Icon size={16} />
@@ -237,10 +255,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div
                 className="mono"
                 style={{
-                  fontSize: '1.625rem',
+                  fontSize: 'clamp(1.2rem, 1.8vw, 1.5rem)',
                   fontWeight: 700,
                   color: card.highlight ? '#f87171' : 'var(--text-primary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
                 }}
+                title={String(card.value)}
               >
                 {card.value}
               </div>

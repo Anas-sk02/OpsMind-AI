@@ -1,11 +1,15 @@
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, Query, Path, status
+from sqlalchemy import select, func, case, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin, require_operator
 from app.core.exceptions import NotFoundException
 from app.models.user import User
+from app.models.order import Order
+from app.models.task import Task
+from app.models.inventory import Inventory
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.order import (
     CreateOrderRequest,
@@ -16,6 +20,46 @@ from app.schemas.order import (
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/admin/orders", tags=["Admin Orders"])
+
+
+@router.get(
+    "/metrics/summary",
+    response_model=ApiResponse[Dict[str, Any]],
+    summary="Fast aggregated dashboard metrics",
+)
+async def get_dashboard_metrics_summary(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    # Fast single aggregation queries
+    order_stmt = select(
+        func.count(Order.id).label("total_orders"),
+        func.coalesce(func.sum(Order.total_amount), 0).label("total_revenue"),
+        func.count(case((Order.status.not_in(["DELIVERED", "CANCELLED"]), 1))).label("active_orders"),
+        func.count(case((Order.status == "NEEDS_REVIEW", 1))).label("needs_review_count"),
+    )
+    order_res = (await db.execute(order_stmt)).one()
+
+    task_stmt = select(
+        func.count(case((and_(Task.task_type == "PACKAGING", Task.status.in_(["PENDING", "IN_PROGRESS"])), 1))).label("pending_packaging"),
+        func.count(case((and_(Task.task_type == "DELIVERY", Task.status.in_(["PENDING", "IN_PROGRESS"])), 1))).label("out_for_delivery"),
+    )
+    task_res = (await db.execute(task_stmt)).one()
+
+    inv_stmt = select(func.count(Inventory.id)).where(Inventory.available_qty <= Inventory.reorder_level)
+    low_stock_cnt = (await db.execute(inv_stmt)).scalar() or 0
+
+    return ApiResponse(
+        data={
+            "total_orders": order_res.total_orders,
+            "total_revenue": float(order_res.total_revenue),
+            "active_orders": order_res.active_orders,
+            "needs_review_count": order_res.needs_review_count,
+            "pending_packaging": task_res.pending_packaging,
+            "out_for_delivery": task_res.out_for_delivery,
+            "low_stock_count": low_stock_cnt,
+        }
+    )
 
 
 @router.get(
