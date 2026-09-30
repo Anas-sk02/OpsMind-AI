@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { SimulateEmailModal } from './SimulateEmailModal';
-import { Sparkles, LogOut, Zap } from 'lucide-react';
+import { Sparkles, LogOut, Zap, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   onRefresh?: () => void;
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onRefresh,
+  onToggleMobileMenu,
+  isMobileMenuOpen,
+}) => {
   const { user, logout } = useAuth();
   const [isSimulateOpen, setIsSimulateOpen] = useState(false);
 
@@ -18,17 +24,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onRefresh }) => {
           height: 64,
           background: 'rgba(17, 24, 39, 0.85)',
           backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 1.5rem',
+          padding: '0 1rem',
           position: 'sticky',
           top: 0,
           zIndex: 100,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Mobile Menu Toggle for Admin Role */}
+          {user?.role === 'ADMIN' && onToggleMobileMenu && (
+            <button
+              onClick={onToggleMobileMenu}
+              className="mobile-nav-toggle"
+              aria-label={isMobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+            >
+              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <div
               style={{

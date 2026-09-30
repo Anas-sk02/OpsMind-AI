@@ -60,16 +60,9 @@ export const ReviewQueueView: React.FC = () => {
   return (
     <div className="page-wrapper">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-        }}
-      >
+      <div className="responsive-header" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>AI Exception & Review Queue</h1>
             <span
               style={{
@@ -125,7 +118,7 @@ export const ReviewQueueView: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div className="portal-split-layout">
           {/* Left Column: List of Flagged Orders */}
           <div className="glass-panel" style={{ padding: '0.75rem', maxHeight: '75vh', overflowY: 'auto' }}>
             <div

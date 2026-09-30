@@ -54,14 +54,7 @@ export const EmailAuditView: React.FC = () => {
   return (
     <div className="page-wrapper">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-        }}
-      >
+      <div className="responsive-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Inbound & Outbound Email Stream</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>

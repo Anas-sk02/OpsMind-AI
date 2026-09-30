@@ -19,6 +19,7 @@ const MainLayout: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [adminTab, setAdminTab] = useState<AdminTab>('dashboard');
   const [selectedOrderForModal, setSelectedOrderForModal] = useState<Order | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -79,13 +80,23 @@ const MainLayout: React.FC = () => {
   const handleViewOrder = (order: Order) => {
     setSelectedOrderForModal(order);
     setAdminTab('orders');
+    setMobileMenuOpen(false);
   };
 
   return (
     <div className="app-container">
-      <Navbar onRefresh={() => {}} />
+      <Navbar
+        onRefresh={() => {}}
+        isMobileMenuOpen={mobileMenuOpen}
+        onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
+      />
       <div className="app-body">
-        <Sidebar activeTab={adminTab} onSelectTab={setAdminTab} />
+        <Sidebar
+          activeTab={adminTab}
+          onSelectTab={setAdminTab}
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
         <main className="main-content">
           <ErrorBoundary fallbackTitle="Admin Portal Error">
             <div style={{ display: adminTab === 'dashboard' ? 'block' : 'none' }}>

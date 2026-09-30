@@ -22,6 +22,8 @@ interface SidebarProps {
   onSelectTab: (tab: AdminTab) => void;
   reviewCount?: number;
   lowStockCount?: number;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,6 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   reviewCount = 0,
   lowStockCount = 0,
+  isOpen = false,
+  onClose,
 }) => {
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -51,21 +55,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'emails', label: 'Email Stream', icon: Mail },
   ];
 
+  const handleSelectTab = (tab: AdminTab) => {
+    onSelectTab(tab);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside
-      style={{
-        width: 240,
-        background: 'rgba(17, 24, 39, 0.65)',
-        backdropFilter: 'blur(16px)',
-        borderRight: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '1.25rem 0.75rem',
-        flexShrink: 0,
-        height: '100%',
-        overflowY: 'auto',
-      }}
-    >
+    <>
+      {isOpen && (
+        <div
+          className="mobile-sidebar-backdrop"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`sidebar-wrapper ${isOpen ? 'mobile-open' : ''}`}
+        style={{
+          width: 240,
+          background: 'rgba(17, 24, 39, 0.9)',
+          backdropFilter: 'blur(16px)',
+          borderRight: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1.25rem 0.75rem',
+          flexShrink: 0,
+          height: '100%',
+          overflowY: 'auto',
+        }}
+      >
       <div style={{ marginBottom: '1rem', padding: '0 0.5rem' }}>
         <span
           style={{
@@ -87,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onSelectTab(item.id as AdminTab)}
+              onClick={() => handleSelectTab(item.id as AdminTab)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -151,5 +171,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </p>
       </div>
     </aside>
+  </>
   );
 };
