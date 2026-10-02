@@ -1,5 +1,9 @@
 import uuid
 import logging
+import asyncio
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, List, Tuple, Dict, Any
@@ -7,6 +11,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.exceptions import (
     NotFoundException,
     InsufficientStockException,
@@ -398,6 +403,69 @@ class EmailService:
 
 
     @staticmethod
+    def _send_smtp_sync(
+        to_email: str,
+        subject: str,
+        body_plain: str,
+        body_html: Optional[str] = None,
+    ) -> bool:
+        """
+        Synchronous SMTP transport worker executed within a background worker thread.
+        Supports TLS encryption and standard SMTP authentication (Gmail App Password, SendGrid, Amazon SES, Mailgun).
+        """
+        if not settings.SMTP_HOST or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+            logger.info(f"[Mock SMTP Dispatch] Outbound email to '{to_email}' logged (SMTP credentials not configured in .env).")
+            return False
+
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = settings.SMTP_FROM_EMAIL or "orders@opsmind.io"
+            msg["To"] = to_email
+
+            part1 = MIMEText(body_plain, "plain", "utf-8")
+            msg.attach(part1)
+
+            if body_html:
+                part2 = MIMEText(body_html, "html", "utf-8")
+                msg.attach(part2)
+
+            port = settings.SMTP_PORT or 587
+            with smtplib.SMTP(settings.SMTP_HOST, port, timeout=10) as server:
+                if settings.SMTP_TLS:
+                    server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(msg["From"], [to_email], msg.as_string())
+
+            logger.info(f"Successfully delivered live SMTP email to '{to_email}' via {settings.SMTP_HOST}:{port}")
+            return True
+        except Exception as ex:
+            logger.error(f"Failed to deliver live SMTP email to '{to_email}': {ex}")
+            return False
+
+    @staticmethod
+    async def _dispatch_real_smtp_email(
+        to_email: str,
+        subject: str,
+        body_plain: str,
+        body_html: Optional[str] = None,
+    ) -> bool:
+        """
+        Non-blocking asynchronous SMTP dispatcher that runs in a threadpool to prevent blocking FastAPI event loop.
+        """
+        try:
+            return await asyncio.to_thread(
+                EmailService._send_smtp_sync,
+                to_email=to_email,
+                subject=subject,
+                body_plain=body_plain,
+                body_html=body_html,
+            )
+        except Exception as ex:
+            logger.error(f"Async SMTP dispatch error: {ex}")
+            return False
+
+    @staticmethod
     async def _send_outbound_notification(
         db: AsyncSession,
         customer: Customer,
@@ -406,7 +474,8 @@ class EmailService:
         target_language: str,
     ) -> EmailMessage:
         """
-        Synthesizes fact-grounded localized transactional email and logs to email_messages.
+        Synthesizes fact-grounded localized transactional email, logs to email_messages,
+        and dispatches real email via SMTP if configured.
         """
         # Load order items and product titles
         order_stmt = select(Order).options(
@@ -440,7 +509,7 @@ class EmailService:
             customer_id=customer.id,
             order_id=order.id,
             direction="OUTBOUND",
-            sender_email="orders@opsmind.io",
+            sender_email=settings.SMTP_FROM_EMAIL or "orders@opsmind.io",
             recipient_email=customer.email,
             subject=synth_resp.subject,
             body_plain=synth_resp.body_plain,
@@ -450,8 +519,101 @@ class EmailService:
         db.add(outbound_email)
         await db.flush()
 
-        logger.info(f"Queued OUTBOUND {template_type} email {outbound_email.id} to {customer.email} in '{synth_resp.language}'")
+        logger.info(f"Persisted OUTBOUND {template_type} email {outbound_email.id} for {customer.email} in '{synth_resp.language}'")
+
+        # Asynchronously dispatch real SMTP email
+        await EmailService._dispatch_real_smtp_email(
+            to_email=customer.email,
+            subject=synth_resp.subject,
+            body_plain=synth_resp.body_plain,
+            body_html=synth_resp.body_html,
+        )
+
         return outbound_email
+
+    @staticmethod
+    async def notify_customer_order_status(
+        db: AsyncSession,
+        order_id: uuid.UUID,
+        new_status: str,
+    ) -> Optional[EmailMessage]:
+        """
+        Public notification trigger called whenever order lifecycle changes:
+        PACKED -> 'Your order is packed & assigned to delivery'
+        OUT_FOR_DELIVERY -> 'Out for delivery'
+        DELIVERED -> 'Delivered! Thank you for ordering with OpsMind'
+        OUT_OF_STOCK -> 'Stock update notification'
+        CANCELLED -> 'Order cancellation notice'
+        """
+        order_stmt = (
+            select(Order)
+            .options(selectinload(Order.customer), selectinload(Order.items).selectinload(OrderItem.product))
+            .where(Order.id == order_id)
+        )
+        order = (await db.execute(order_stmt)).scalar_one_or_none()
+        if not order or not order.customer:
+            logger.warning(f"Cannot notify customer: Order {order_id} or associated customer not found.")
+            return None
+
+        # Map order status to synthesis template
+        template_map = {
+            "CONFIRMED": "CONFIRMATION",
+            "PACKED": "PACKED",
+            "OUT_FOR_DELIVERY": "OUT_FOR_DELIVERY",
+            "DELIVERED": "DELIVERED",
+            "OUT_OF_STOCK": "OUT_OF_STOCK",
+            "CANCELLED": "CANCELLED",
+        }
+        template_type = template_map.get(new_status)
+        if not template_type:
+            logger.debug(f"No customer notification template needed for status '{new_status}'.")
+            return None
+
+        outbound = await EmailService._send_outbound_notification(
+            db=db,
+            customer=order.customer,
+            order=order,
+            template_type=template_type,
+            target_language=order.customer.preferred_language or "en",
+        )
+        await db.commit()
+        await db.refresh(outbound)
+        return outbound
+
+    @staticmethod
+    async def test_smtp_connection(to_email: str) -> Dict[str, Any]:
+        """
+        Diagnostics endpoint helper to verify SMTP connectivity and configuration.
+        """
+        configured = bool(settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD)
+        if not configured:
+            return {
+                "success": False,
+                "configured": False,
+                "message": "SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASSWORD) are not configured in environment.",
+                "smtp_host": settings.SMTP_HOST,
+                "smtp_port": settings.SMTP_PORT,
+            }
+
+        test_subject = "OpsMind AI — SMTP Test Connection"
+        test_plain = f"Hello,\n\nThis is a verification email from OpsMind AI Fulfillment Platform.\n\nTime: {datetime.now(timezone.utc).isoformat()}\nStatus: SMTP Connection Successful!"
+        test_html = f"<h3>OpsMind AI — SMTP Test</h3><p>This is a verification email from <strong>OpsMind AI Fulfillment Platform</strong>.</p><p>Status: <span style='color:green;font-weight:bold;'>SMTP Connection Successful!</span></p>"
+
+        delivered = await EmailService._dispatch_real_smtp_email(
+            to_email=to_email,
+            subject=test_subject,
+            body_plain=test_plain,
+            body_html=test_html,
+        )
+
+        return {
+            "success": delivered,
+            "configured": True,
+            "recipient": to_email,
+            "smtp_host": settings.SMTP_HOST,
+            "smtp_port": settings.SMTP_PORT,
+            "message": "Test email successfully sent!" if delivered else "Failed to send test email. Check SMTP server logs and credentials.",
+        }
 
     @staticmethod
     async def _get_latest_customer_order(db: AsyncSession, customer_id: uuid.UUID) -> Optional[Order]:

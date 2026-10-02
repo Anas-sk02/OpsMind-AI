@@ -201,17 +201,17 @@ class AIService:
         lines = [line.strip() for line in body.split("\n") if line.strip()]
 
         addr_match = re.search(
-            r"\b(?:deliver to|ship to|shipping address|address|adresse|dirección de envío|dirección|envío a|पता|عنوان)\b[:\s]+([^\n\r]+)",
+            r"\b(?:shipping address|destination address|delivery address|address|adresse|dirección de envío|dirección|envío a|पता|عنوان|deliver to our|ship to our|deliver to|ship to)\b[:\s]+([^\n\r]+)",
             full_text,
             re.IGNORECASE,
         )
         if addr_match:
             raw_addr = addr_match.group(1).strip()
-            # If match was a header phrase like "our headquarters:" or "this address:", look at the next line
-            if any(h in raw_addr.lower() for h in ["our headquarters", "our office", "following address", "below address"]) or len(raw_addr) < 4:
+            # If match was a header phrase like "our headquarters:", "our address:", or short placeholder, look at next line
+            if any(h in raw_addr.lower() for h in ["our headquarters", "our office", "our address", "this address", "following address", "below address"]) or len(raw_addr) < 4:
                 # Find line index and check next line
                 for idx, line in enumerate(lines):
-                    if any(h in line.lower() for h in ["headquarters", "address", "deliver", "ship to", "dirección"]):
+                    if any(h in line.lower() for h in ["headquarters", "address", "adresse", "dirección"]):
                         if idx + 1 < len(lines):
                             shipping_addr = lines[idx + 1]
                             break
@@ -264,11 +264,13 @@ class AIService:
         cleaned_search_text = body
         if shipping_addr:
             cleaned_search_text = cleaned_search_text.replace(shipping_addr, " ")
+            cleaned_search_text = cleaned_search_text.replace(shipping_addr.rstrip(".,;"), " ")
         if sender_phone:
             cleaned_search_text = cleaned_search_text.replace(sender_phone, " ")
 
-        # Remove phone regex patterns from search text
-        cleaned_search_text = re.sub(r"(?:phone|tel|mobile)?[:\s]*\+?\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}", " ", cleaned_search_text, flags=re.IGNORECASE)
+        # Remove phone regex patterns and standalone zipcodes from search text
+        cleaned_search_text = re.sub(r"\b(?:phone|tel|mobile)[:\s]*\+?\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b", " ", cleaned_search_text, flags=re.IGNORECASE)
+        cleaned_search_text = re.sub(r"\b\d{5}(?:-\d{4})?\b", " ", cleaned_search_text)
 
         item_patterns = [
             r"(?:order|buy|purchase|quiero pedir|pedir|veuillez envoyer|bitte|please send|please ship|send|ship|deliver|por favor enviar|enviar)?\s*(\d+)\s*(?:x|units of|pcs of|pieces of|unidades de|exemplaires de|stücke)?\s+([A-Za-z0-9\-_]+(?:\s+[A-Za-z0-9\-_]+)*?)(?=\s+(?:and|y|et|und|plus|\+|to|at|in|en|an|for|para|pour|für|deliver|ship|a nuestra|a mi)\b|[\n,\.]|$)",
@@ -276,9 +278,9 @@ class AIService:
         ]
 
         # Ignore words that indicate an address or contact clause rather than a product
-        non_product_keywords = [
+        address_only_keywords = [
             "terrace", "street", "avenue", "road", "blvd", "lane", "broadway", "floor", "suite",
-            "springfield", "new york", "madrid", "paris", "berlin", "headquarters", "office", "phone",
+            "springfield", "new york", "madrid", "paris", "berlin", "headquarters",
             "wayne manor", "gotham", "main street"
         ]
 
@@ -301,11 +303,15 @@ class AIService:
                     raw_q = re.sub(r"\s+(?:para|for|pour|für|an|to|with|con)\s+.*$", "", raw_q, flags=re.IGNORECASE).strip()
                     
                     # Ignore non-product keywords, unreasonable quantities (> 10000), or empty strings
+                    is_address_word = any(
+                        re.search(r"\b" + re.escape(np) + r"\b", raw_q, re.IGNORECASE)
+                        for np in address_only_keywords
+                    )
                     if (
                         raw_q
                         and len(raw_q) >= 2
                         and 0 < qty <= 10000
-                        and not any(np in raw_q.lower() for np in non_product_keywords)
+                        and not is_address_word
                         and not any(it.raw_product_query.lower() == raw_q.lower() for it in items)
                     ):
                         items.append(ExtractedOrderItem(raw_product_query=raw_q, quantity=qty))

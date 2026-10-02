@@ -274,3 +274,118 @@ async def test_admin_email_audit_logs_and_rbac(
     detail_res = await client.get(f"/api/v1/admin/emails/{sample_email_id}", headers=admin_headers)
     assert detail_res.status_code == 200
     assert detail_res.json()["data"]["id"] == sample_email_id
+
+
+@pytest.mark.asyncio
+async def test_sendgrid_inbound_parse_webhook(
+    client: AsyncClient, admin_headers: dict, packager_headers: dict
+):
+    await client.get("/api/v1/employee/tasks/my", headers=packager_headers)
+
+    # 1. Create Product
+    prod = (
+        await client.post(
+            "/api/v1/admin/products",
+            json={"sku": "SKU-SENDGRID-BOX", "name": "SendGrid Test Box", "price": 49.99, "initial_stock": 20},
+            headers=admin_headers,
+        )
+    ).json()["data"]
+
+    # 2. Simulate SendGrid multipart form post
+    form_data = {
+        "from": "Michael Scott <mscott@dundermifflin.com>",
+        "to": "orders@opsmind.io",
+        "subject": "Paper Order",
+        "text": "Hello, please deliver 2x SKU-SENDGRID-BOX to:\n1725 Slough Avenue, Scranton, PA 18504.\n\nThanks,\nMichael Scott",
+        "headers": "Received: by mail.sendgrid.net...\nMessage-ID: <sendgrid_msg_987654@dundermifflin.com>\nSubject: Paper Order",
+    }
+
+    res = await client.post("/api/v1/webhooks/email/sendgrid", data=form_data)
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["status"] == "PROCESSED"
+    assert data["customer_email"] == "mscott@dundermifflin.com"
+    assert data["order_id"] is not None
+
+
+@pytest.mark.asyncio
+async def test_order_lifecycle_customer_notifications(
+    client: AsyncClient, admin_headers: dict, packager_headers: dict
+):
+    await client.get("/api/v1/employee/tasks/my", headers=packager_headers)
+
+    # 1. Create product & order via webhook
+    prod = (
+        await client.post(
+            "/api/v1/admin/products",
+            json={"sku": "SKU-TRACK-PHONE", "name": "5G Smartphone", "price": 499.00, "initial_stock": 10},
+            headers=admin_headers,
+        )
+    ).json()["data"]
+
+    msg_id = f"<lifecycle_test_{uuid.uuid4().hex[:10]}@test.com>"
+    webhook_res = await client.post(
+        "/api/v1/webhooks/email/inbound",
+        json={
+            "message_id": msg_id,
+            "sender_email": "jane.customer@test.com",
+            "sender_name": "Jane Customer",
+            "subject": "Urgent purchase order: Smartphone",
+            "body_plain": "Hello OpsMind team,\n\nPlease ship 1x SKU-TRACK-PHONE to our headquarters:\n100 Main Street, Seattle, WA 98101.\n\nThank you,\nJane Customer\nPhone: +1-206-555-0123",
+        },
+    )
+    assert webhook_res.status_code == 200
+    assert webhook_res.json()["data"]["status"] == "PROCESSED"
+    order_id = webhook_res.json()["data"]["order_id"]
+
+    # 2. Transition Order: PACKAGING -> PACKED
+    packed_res = await client.patch(
+        f"/api/v1/admin/orders/{order_id}/status",
+        json={"new_status": "PACKED", "reason": "All items verified into parcel"},
+        headers=admin_headers,
+    )
+    assert packed_res.status_code == 200
+
+    # 3. Transition Order: PACKED -> OUT_FOR_DELIVERY
+    transit_res = await client.patch(
+        f"/api/v1/admin/orders/{order_id}/status",
+        json={"new_status": "OUT_FOR_DELIVERY", "reason": "Driver en route"},
+        headers=admin_headers,
+    )
+    assert transit_res.status_code == 200
+
+    # 4. Transition Order: OUT_FOR_DELIVERY -> DELIVERED
+    deliv_res = await client.patch(
+        f"/api/v1/admin/orders/{order_id}/status",
+        json={"new_status": "DELIVERED", "reason": "Handed to customer"},
+        headers=admin_headers,
+    )
+    assert deliv_res.status_code == 200
+
+    # 5. Check email audit log to verify customer received notifications for CONFIRMATION, PACKED, OUT_FOR_DELIVERY, and DELIVERED!
+    emails_res = await client.get(f"/api/v1/admin/emails?order_id={order_id}", headers=admin_headers)
+    assert emails_res.status_code == 200
+    order_emails = emails_res.json()["data"]
+    
+    # We expect 1 INBOUND + 4 OUTBOUND notifications (CONFIRMATION, PACKED, OUT_FOR_DELIVERY, DELIVERED)
+    outbound_emails = [e for e in order_emails if e["direction"] == "OUTBOUND"]
+    assert len(outbound_emails) >= 4
+
+    subjects = [e["subject"] for e in outbound_emails]
+    assert any("Confirmation" in s for s in subjects)
+    assert any("Packed" in s for s in subjects)
+    assert any("Out for Delivery" in s for s in subjects)
+    assert any("Delivered" in s for s in subjects)
+
+
+@pytest.mark.asyncio
+async def test_smtp_diagnostic_endpoint(client: AsyncClient):
+    # Test SMTP diagnostic check endpoint
+    res = await client.post(
+        "/api/v1/webhooks/email/test-smtp",
+        json={"recipient_email": "test_verify@example.com"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert "configured" in data
+

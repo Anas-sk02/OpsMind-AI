@@ -367,18 +367,43 @@ class OrderService:
 
         await db.commit()
 
-        # Auto-spawn tasks upon entering operational workflow stages
+        # Auto-spawn tasks & notify customer upon entering operational workflow stages
         from app.services.task_service import TaskService
+        from app.services.email_service import EmailService
+
         if target_status == "PACKAGING":
             try:
                 await TaskService.spawn_packaging_task(db, order_id=order.id, actor_id=actor_id)
             except Exception as ex:
                 logger.error(f"Failed to auto-spawn packaging task for order {order.id}: {ex}")
+
         elif target_status == "PACKED":
             try:
                 await TaskService.spawn_delivery_task(db, order_id=order.id, actor_id=actor_id)
             except Exception as ex:
                 logger.error(f"Failed to auto-spawn delivery task for order {order.id}: {ex}")
+            try:
+                await EmailService.notify_customer_order_status(db, order_id=order.id, new_status="PACKED")
+            except Exception as ex:
+                logger.error(f"Failed to send PACKED notification for order {order.id}: {ex}")
+
+        elif target_status == "OUT_FOR_DELIVERY":
+            try:
+                await EmailService.notify_customer_order_status(db, order_id=order.id, new_status="OUT_FOR_DELIVERY")
+            except Exception as ex:
+                logger.error(f"Failed to send OUT_FOR_DELIVERY notification for order {order.id}: {ex}")
+
+        elif target_status == "DELIVERED":
+            try:
+                await EmailService.notify_customer_order_status(db, order_id=order.id, new_status="DELIVERED")
+            except Exception as ex:
+                logger.error(f"Failed to send DELIVERED notification for order {order.id}: {ex}")
+
+        elif target_status in ("OUT_OF_STOCK", "CANCELLED"):
+            try:
+                await EmailService.notify_customer_order_status(db, order_id=order.id, new_status=target_status)
+            except Exception as ex:
+                logger.error(f"Failed to send {target_status} notification for order {order.id}: {ex}")
 
         refreshed_order = await OrderService.get_order_by_id(db, order.id)
         logger.info(f"Order '{order.order_number}' transitioned from '{current_status}' -> '{target_status}'")
