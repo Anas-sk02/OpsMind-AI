@@ -15,7 +15,7 @@ import type { User, Task } from '../../types';
 export const EmployeesView: React.FC = () => {
   const [employees, setEmployees] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modals
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
@@ -33,7 +33,7 @@ export const EmployeesView: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const [empData, taskData, metricsData] = await Promise.all([
         api.getEmployees(),
@@ -60,7 +60,9 @@ export const EmployeesView: React.FC = () => {
     } catch (err) {
       console.error('Failed to load employees & tasks:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -118,9 +120,9 @@ export const EmployeesView: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={fetchData} disabled={loading} className="btn btn-secondary">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+          <button onClick={fetchData} disabled={isRefreshing} className="btn btn-secondary">
+            <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Workload'}</span>
           </button>
           <button onClick={() => setIsAddStaffOpen(true)} className="btn btn-primary">
             <UserPlus size={16} />

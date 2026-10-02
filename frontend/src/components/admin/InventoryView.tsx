@@ -13,7 +13,7 @@ import type { Product, InventoryMovement } from '../../types';
 
 export const InventoryView: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
 
@@ -42,7 +42,7 @@ export const InventoryView: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const fetchProducts = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const res = await api.getProducts({
         low_stock_only: lowStockFilter ? true : undefined,
@@ -53,7 +53,9 @@ export const InventoryView: React.FC = () => {
     } catch (err) {
       console.error('Failed to load products:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -134,9 +136,9 @@ export const InventoryView: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={fetchProducts} disabled={loading} className="btn btn-secondary">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+          <button onClick={fetchProducts} disabled={isRefreshing} className="btn btn-secondary">
+            <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Ledger'}</span>
           </button>
           <button onClick={() => setIsAddProductOpen(true)} className="btn btn-primary">
             <Plus size={16} />

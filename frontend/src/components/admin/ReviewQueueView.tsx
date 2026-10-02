@@ -13,7 +13,7 @@ import type { Order } from '../../types';
 
 export const ReviewQueueView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reasonNotes, setReasonNotes] = useState<string>('');
@@ -26,7 +26,7 @@ export const ReviewQueueView: React.FC = () => {
   };
 
   const fetchReviewOrders = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const [reviewRes, stockRes] = await Promise.all([
         api.getOrders({ status: 'NEEDS_REVIEW', page_size: 100 }),
@@ -45,7 +45,9 @@ export const ReviewQueueView: React.FC = () => {
     } catch (err) {
       console.error('Failed to load review queue:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -253,9 +255,9 @@ export const ReviewQueueView: React.FC = () => {
             </button>
           )}
 
-          <button onClick={fetchReviewOrders} disabled={loading} className="btn btn-secondary">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh Queue</span>
+          <button onClick={fetchReviewOrders} disabled={isRefreshing} className="btn btn-secondary">
+            <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Queue'}</span>
           </button>
         </div>
       </div>

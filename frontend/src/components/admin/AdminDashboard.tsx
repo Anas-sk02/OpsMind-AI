@@ -27,10 +27,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const [metricsData, ordersData] = await Promise.all([
         api.getDashboardMetrics(),
@@ -41,7 +41,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -117,12 +119,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <button
           onClick={fetchData}
-          disabled={loading}
+          disabled={isRefreshing}
           className="btn btn-secondary"
           style={{ padding: '0.5rem 1rem' }}
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Data</span>
+          <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
         </button>
       </div>
 

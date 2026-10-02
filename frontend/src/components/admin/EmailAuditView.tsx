@@ -15,7 +15,7 @@ import type { EmailMessage } from '../../types';
 
 export const EmailAuditView: React.FC = () => {
   const [emails, setEmails] = useState<EmailMessage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [directionFilter, setDirectionFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
@@ -23,18 +23,20 @@ export const EmailAuditView: React.FC = () => {
   const [pollMessage, setPollMessage] = useState<string | null>(null);
 
   const fetchEmails = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const res = await api.getEmailMessages({
         direction: directionFilter === 'ALL' ? undefined : directionFilter,
         search: searchQuery || undefined,
-        page_size: 50,
+        page_size: 100,
       });
       setEmails(res.data || []);
     } catch (err) {
       console.error('Failed to load email messages:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -90,9 +92,9 @@ export const EmailAuditView: React.FC = () => {
             <Mail size={15} className={pollingMailbox ? 'animate-spin' : ''} />
             <span>{pollingMailbox ? 'Checking Inbox...' : 'Check Mailbox Now'}</span>
           </button>
-          <button onClick={fetchEmails} disabled={loading} className="btn btn-secondary">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh Stream</span>
+          <button onClick={fetchEmails} disabled={isRefreshing} className="btn btn-secondary">
+            <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Stream'}</span>
           </button>
         </div>
       </div>

@@ -23,7 +23,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   onCloseModal,
 }) => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModalOrder, setActiveModalOrder] = useState<Order | null>(
@@ -37,17 +37,19 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   }, [selectedOrderModal]);
 
   const fetchOrders = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const res = await api.getOrders({
         status: statusFilter === 'ALL' ? undefined : statusFilter,
-        page_size: 50,
+        page_size: 100,
       });
       setOrders(res.data || []);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -97,9 +99,9 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           </p>
         </div>
 
-        <button onClick={fetchOrders} disabled={loading} className="btn btn-secondary">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
+        <button onClick={fetchOrders} disabled={isRefreshing} className="btn btn-secondary">
+          <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Orders'}</span>
         </button>
       </div>
 

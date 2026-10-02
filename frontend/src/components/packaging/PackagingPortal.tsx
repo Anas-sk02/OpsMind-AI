@@ -13,7 +13,7 @@ import type { Task } from '../../types';
 
 export const PackagingPortal: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,7 +23,7 @@ export const PackagingPortal: React.FC = () => {
   const [exceptionReason, setExceptionReason] = useState('Damaged goods in bin');
 
   const fetchMyTasks = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const myTasks = await api.getMyTasks();
       const packagingTasks = (myTasks || []).filter((t) => t.task_type === 'PACKAGING' && t.status !== 'COMPLETED');
@@ -36,7 +36,9 @@ export const PackagingPortal: React.FC = () => {
     } catch (err) {
       console.error('Failed to load packaging tasks:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -124,9 +126,9 @@ export const PackagingPortal: React.FC = () => {
           </div>
         </div>
 
-        <button onClick={fetchMyTasks} disabled={loading} className="btn btn-secondary">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Tasks</span>
+        <button onClick={fetchMyTasks} disabled={isRefreshing} className="btn btn-secondary">
+          <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Tasks'}</span>
         </button>
       </div>
 

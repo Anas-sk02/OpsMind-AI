@@ -16,7 +16,7 @@ import type { Task } from '../../types';
 
 export const DeliveryPortal: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,7 +29,7 @@ export const DeliveryPortal: React.FC = () => {
   const [exceptionReason, setExceptionReason] = useState('Customer unavailable at delivery address.');
 
   const fetchMyTasks = async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const myTasks = await api.getMyTasks();
       const deliveryTasks = (myTasks || []).filter((t) => t.task_type === 'DELIVERY' && t.status !== 'COMPLETED');
@@ -42,7 +42,9 @@ export const DeliveryPortal: React.FC = () => {
     } catch (err) {
       console.error('Failed to load delivery tasks:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 350);
     }
   };
 
@@ -126,9 +128,9 @@ export const DeliveryPortal: React.FC = () => {
           </div>
         </div>
 
-        <button onClick={fetchMyTasks} disabled={loading} className="btn btn-secondary">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Route</span>
+        <button onClick={fetchMyTasks} disabled={isRefreshing} className="btn btn-secondary">
+          <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Route'}</span>
         </button>
       </div>
 
