@@ -431,10 +431,11 @@ class EmailService:
                 msg.attach(part2)
 
             port = settings.SMTP_PORT or 587
+            smtp_pwd = (settings.SMTP_PASSWORD or "").replace(" ", "").strip()
             with smtplib.SMTP(settings.SMTP_HOST, port, timeout=10) as server:
                 if settings.SMTP_TLS:
                     server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.login(settings.SMTP_USER, smtp_pwd)
                 server.sendmail(msg["From"], [to_email], msg.as_string())
 
             logger.info(f"Successfully delivered live SMTP email to '{to_email}' via {settings.SMTP_HOST}:{port}")

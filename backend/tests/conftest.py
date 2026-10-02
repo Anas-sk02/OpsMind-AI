@@ -9,10 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Set testing environment variable before importing app
 os.environ["ENVIRONMENT"] = "testing"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["EMAIL_ENABLED"] = "false"
+os.environ["SMTP_HOST"] = ""
+os.environ["SMTP_USER"] = ""
+os.environ["SMTP_PASSWORD"] = ""
 
 from app.core.database import Base, get_db
 from app.main import app
 from app.core.config import settings
+
+settings.EMAIL_ENABLED = False
+settings.SMTP_HOST = None
+settings.SMTP_USER = None
+settings.SMTP_PASSWORD = None
 
 
 @pytest_asyncio.fixture(autouse=True)
