@@ -162,7 +162,7 @@ class ApiClient {
 
   async updateOrderStatus(id: string, new_status: string, reason?: string): Promise<Order> {
     const res = await this.request<Order>(`/admin/orders/${id}/status`, {
-      method: 'POST',
+      method: 'PATCH',
       body: JSON.stringify({ new_status, reason }),
     });
     return res.data;
@@ -313,6 +313,13 @@ class ApiClient {
 
   async getEmailDetail(id: string): Promise<EmailMessage> {
     const res = await this.request<EmailMessage>(`/admin/emails/${id}`);
+    return res.data;
+  }
+
+  async pollMailboxNow(): Promise<{ polled: boolean; count: number; message: string; processed_orders: any[] }> {
+    const res = await this.request<any>('/admin/emails/poll-now', {
+      method: 'POST',
+    });
     return res.data;
   }
 

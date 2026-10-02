@@ -95,3 +95,25 @@ async def get_email_log(
         created_at=email_msg.created_at,
     )
     return ApiResponse.ok(data=dto)
+
+
+@router.post(
+    "/poll-now",
+    response_model=ApiResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Trigger immediate IMAP mailbox check for new unread order emails",
+)
+async def poll_mailbox_now(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    On-demand mailbox check: Connects to configured Gmail / IMAP server,
+    retrieves all unread customer emails, and extracts orders autonomously.
+    """
+    from app.services.imap_service import ImapService
+    result = await ImapService.poll_and_process_mailbox(db)
+    return ApiResponse.ok(
+        data=result,
+        message=result.get("message", "Mailbox poll completed"),
+    )

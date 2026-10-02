@@ -19,6 +19,8 @@ export const EmailAuditView: React.FC = () => {
   const [directionFilter, setDirectionFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [pollingMailbox, setPollingMailbox] = useState(false);
+  const [pollMessage, setPollMessage] = useState<string | null>(null);
 
   const fetchEmails = async () => {
     setLoading(true);
@@ -33,6 +35,22 @@ export const EmailAuditView: React.FC = () => {
       console.error('Failed to load email messages:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePollMailbox = async () => {
+    setPollingMailbox(true);
+    setPollMessage(null);
+    try {
+      const res = await api.pollMailboxNow();
+      setPollMessage(res.message || `Mailbox checked: ${res.count} new emails.`);
+      await fetchEmails();
+      setTimeout(() => setPollMessage(null), 5000);
+    } catch (err: any) {
+      setPollMessage(err.message || 'Failed to poll mailbox. Check credentials.');
+      setTimeout(() => setPollMessage(null), 5000);
+    } finally {
+      setPollingMailbox(false);
     }
   };
 
@@ -62,11 +80,42 @@ export const EmailAuditView: React.FC = () => {
           </p>
         </div>
 
-        <button onClick={fetchEmails} disabled={loading} className="btn btn-secondary">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Stream</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={handlePollMailbox}
+            disabled={pollingMailbox}
+            className="btn btn-primary"
+            style={{ padding: '0.45rem 0.9rem' }}
+          >
+            <Mail size={15} className={pollingMailbox ? 'animate-spin' : ''} />
+            <span>{pollingMailbox ? 'Checking Inbox...' : 'Check Mailbox Now'}</span>
+          </button>
+          <button onClick={fetchEmails} disabled={loading} className="btn btn-secondary">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh Stream</span>
+          </button>
+        </div>
       </div>
+
+      {pollMessage && (
+        <div
+          className="glass-panel"
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            background: 'rgba(56, 189, 248, 0.1)',
+            borderColor: 'var(--accent-cyan)',
+            color: 'var(--accent-cyan)',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <Sparkles size={16} />
+          <span>{pollMessage}</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div

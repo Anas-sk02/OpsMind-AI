@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   RefreshCw,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 import type { Order } from '../../types';
 
@@ -12,8 +13,7 @@ export const ReviewQueueView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [resolutionAction, setResolutionAction] = useState<string>('APPROVE_CONFIRMED');
-  const [reasonNotes, setReasonNotes] = useState<string>('Resolved by administrator review');
+  const [reasonNotes, setReasonNotes] = useState<string>('');
   const [isResolving, setIsResolving] = useState(false);
 
   const fetchReviewOrders = async () => {
@@ -25,8 +25,12 @@ export const ReviewQueueView: React.FC = () => {
       ]);
       const combined = [...(reviewRes.data || []), ...(stockRes.data || [])];
       setOrders(combined);
-      if (combined.length > 0 && !selectedOrder) {
-        setSelectedOrder(combined[0]);
+      if (combined.length > 0) {
+        if (!selectedOrder || !combined.some((o) => o.id === selectedOrder.id)) {
+          setSelectedOrder(combined[0]);
+        }
+      } else {
+        setSelectedOrder(null);
       }
     } catch (err) {
       console.error('Failed to load review queue:', err);
@@ -39,23 +43,60 @@ export const ReviewQueueView: React.FC = () => {
     fetchReviewOrders();
   }, []);
 
-  const handleResolveOrder = async () => {
-    if (!selectedOrder) return;
+  const handleQuickDismiss = async (orderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setIsResolving(true);
     try {
-      if (resolutionAction === 'APPROVE_CONFIRMED') {
-        await api.updateOrderStatus(selectedOrder.id, 'CONFIRMED', reasonNotes);
-      } else if (resolutionAction === 'CANCEL') {
-        await api.updateOrderStatus(selectedOrder.id, 'CANCELLED', reasonNotes);
+      await api.updateOrderStatus(orderId, 'CANCELLED', 'Dismissed by administrator (Non-order / Spam / Marketing email)');
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(null);
       }
-      setSelectedOrder(null);
       await fetchReviewOrders();
     } catch (err: any) {
-      alert(`Resolution failed: ${err.message}`);
+      alert(`Dismiss failed: ${err.message}`);
     } finally {
       setIsResolving(false);
     }
   };
+
+  const handleApproveOrder = async () => {
+    if (!selectedOrder) return;
+    setIsResolving(true);
+    try {
+      await api.updateOrderStatus(
+        selectedOrder.id,
+        'CONFIRMED',
+        reasonNotes.trim() || 'Approved & stock reserved by administrator'
+      );
+      setSelectedOrder(null);
+      setReasonNotes('');
+      await fetchReviewOrders();
+    } catch (err: any) {
+      alert(`Approval failed: ${err.message}`);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const handleRejectOrder = async () => {
+    if (!selectedOrder) return;
+    setIsResolving(true);
+    try {
+      await api.updateOrderStatus(
+        selectedOrder.id,
+        'CANCELLED',
+        reasonNotes.trim() || 'Rejected & cancelled by administrator'
+      );
+      setSelectedOrder(null);
+      setReasonNotes('');
+      await fetchReviewOrders();
+    } catch (err: any) {
+      alert(`Rejection failed: ${err.message}`);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
 
   return (
     <div className="page-wrapper">
@@ -146,13 +187,37 @@ export const ReviewQueueView: React.FC = () => {
                       border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
+                      position: 'relative',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <span className="mono" style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                         {o.order_number}
                       </span>
-                      <StatusBadge status={o.status} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <StatusBadge status={o.status} />
+                        <button
+                          type="button"
+                          title="Quick Dismiss / Delete from Queue"
+                          onClick={(e) => handleQuickDismiss(o.id, e)}
+                          disabled={isResolving}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0.2rem 0.4rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.75rem',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                     <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{o.customer_name || 'Customer'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -240,31 +305,37 @@ export const ReviewQueueView: React.FC = () => {
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                   Extracted Line Items
                 </div>
-                {selectedOrder.items?.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem 1rem',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{item.product_name}</div>
-                      <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>
-                        SKU: {item.sku}
+                {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
+                  <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                    No valid order line items extracted (Likely a newsletter / spam / non-order email).
+                  </div>
+                ) : (
+                  selectedOrder.items.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-color)',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{item.product_name}</div>
+                        <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>
+                          SKU: {item.sku}
+                        </div>
+                      </div>
+                      <div className="mono" style={{ fontWeight: 600 }}>
+                        {item.quantity} units @ ${Number(item.unit_price ?? 0).toFixed(2)} = ${Number(item.total_price ?? 0).toFixed(2)}
                       </div>
                     </div>
-                    <div className="mono" style={{ fontWeight: 600 }}>
-                      {item.quantity} units @ ${Number(item.unit_price ?? 0).toFixed(2)} = ${Number(item.total_price ?? 0).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Operator Action Bar */}
@@ -277,50 +348,56 @@ export const ReviewQueueView: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-                  Resolve & Dispatch Order
+                  Resolve & Decision Triage
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem' }}>
-                  <div>
-                    <label className="form-label">Triage Action</label>
-                    <select
-                      className="form-select"
-                      value={resolutionAction}
-                      onChange={(e) => setResolutionAction(e.target.value)}
-                    >
-                      <option value="APPROVE_CONFIRMED">Approve & Reserve Stock (CONFIRMED)</option>
-                      <option value="CANCEL">Reject & Cancel Order</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="form-label">Audit Notes</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={reasonNotes}
-                      onChange={(e) => setReasonNotes(e.target.value)}
-                    />
-                  </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label className="form-label">Audit / Resolution Notes (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Non-order marketing email / False positive / Approved manual override"
+                    value={reasonNotes}
+                    onChange={(e) => setReasonNotes(e.target.value)}
+                  />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <button
-                    onClick={handleResolveOrder}
+                    type="button"
+                    onClick={handleRejectOrder}
+                    disabled={isResolving}
+                    className="btn"
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    <span>Reject & Dismiss (Non-Order / Spam)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleApproveOrder}
                     disabled={isResolving}
                     className="btn btn-primary"
                     style={{
-                      background:
-                        resolutionAction === 'CANCEL'
-                          ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
-                          : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                      borderColor:
-                        resolutionAction === 'CANCEL'
-                          ? 'rgba(239, 68, 68, 0.4)'
-                          : 'rgba(16, 185, 129, 0.4)',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      borderColor: 'rgba(16, 185, 129, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontWeight: 600,
                     }}
                   >
-                    {isResolving ? 'Processing...' : resolutionAction === 'CANCEL' ? 'Cancel Order' : 'Approve & Confirm Fulfillment'}
+                    <CheckCircle2 size={16} />
+                    <span>Approve & Confirm Fulfillment</span>
                   </button>
                 </div>
               </div>

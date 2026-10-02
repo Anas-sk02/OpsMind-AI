@@ -317,9 +317,23 @@ class AIService:
                         items.append(ExtractedOrderItem(raw_product_query=raw_q, quantity=qty))
 
 
-        # Adjust confidence
+        # Adjust confidence and detect non-order / marketing emails
+        has_order_keywords = any(
+            w in lower_text
+            for w in [
+                "order", "purchase", "buy", "quiero pedir", "pedir", "pedido", "enviar",
+                "commande", "livrer", "envoyer", "bestellung", "bestellen", "liefern",
+                "ऑर्डर", "खरीदना", "भेजें", "طلب", "شراء", "units of", "pcs of",
+                "send me", "ship to", "deliver to", "please send", "please ship"
+            ]
+        )
         if is_order and not items:
-            confidence = 0.40
+            if not has_order_keywords:
+                is_order = False
+                intent_cat = "NON_ORDER"
+                confidence = 0.95
+            else:
+                confidence = 0.40
         elif is_order and not shipping_addr:
             confidence = 0.65
 

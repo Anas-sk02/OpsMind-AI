@@ -125,6 +125,12 @@ async def get_order(
     response_model=ApiResponse[OrderResponse],
     summary="Transition order status with state machine verification and stock automation",
 )
+@router.post(
+    "/{order_id}/status",
+    response_model=ApiResponse[OrderResponse],
+    summary="Transition order status (POST alias)",
+    include_in_schema=False,
+)
 async def update_order_status(
     order_id: uuid.UUID = Path(..., description="Target order UUID"),
     payload: UpdateOrderStatusRequest = ...,

@@ -92,5 +92,13 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     EMAIL_ENABLED: bool = False
 
+    # Inbound IMAP Mailbox Poller Settings (Direct Gmail / IMAP Inbox Reader)
+    IMAP_HOST: str = "imap.gmail.com"
+    IMAP_PORT: int = 993
+    IMAP_USER: Optional[str] = None
+    IMAP_PASSWORD: Optional[str] = None
+    IMAP_POLL_INTERVAL_SECONDS: int = 20
+    IMAP_ENABLED: bool = True
+
 
 settings = Settings()
