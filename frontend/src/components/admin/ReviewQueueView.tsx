@@ -6,6 +6,8 @@ import {
   RefreshCw,
   ShieldAlert,
   Trash2,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import type { Order } from '../../types';
 
@@ -13,18 +15,26 @@ export const ReviewQueueView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reasonNotes, setReasonNotes] = useState<string>('');
   const [isResolving, setIsResolving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const fetchReviewOrders = async () => {
     setLoading(true);
     try {
       const [reviewRes, stockRes] = await Promise.all([
-        api.getOrders({ status: 'NEEDS_REVIEW', page_size: 50 }),
-        api.getOrders({ status: 'OUT_OF_STOCK', page_size: 50 }),
+        api.getOrders({ status: 'NEEDS_REVIEW', page_size: 100 }),
+        api.getOrders({ status: 'OUT_OF_STOCK', page_size: 100 }),
       ]);
       const combined = [...(reviewRes.data || []), ...(stockRes.data || [])];
       setOrders(combined);
+      setSelectedIds(new Set());
       if (combined.length > 0) {
         if (!selectedOrder || !combined.some((o) => o.id === selectedOrder.id)) {
           setSelectedOrder(combined[0]);
@@ -43,17 +53,86 @@ export const ReviewQueueView: React.FC = () => {
     fetchReviewOrders();
   }, []);
 
+  const toggleSelectOrder = (orderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === orders.length && orders.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(orders.map((o) => o.id)));
+    }
+  };
+
   const handleQuickDismiss = async (orderId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setIsResolving(true);
+    // Optimistic UI update
+    const prevOrders = [...orders];
+    const prevSelected = selectedOrder;
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(orderId);
+      return next;
+    });
+    if (selectedOrder?.id === orderId) {
+      const remaining = prevOrders.filter((o) => o.id !== orderId);
+      setSelectedOrder(remaining.length > 0 ? remaining[0] : null);
+    }
+
     try {
-      await api.updateOrderStatus(orderId, 'CANCELLED', 'Dismissed by administrator (Non-order / Spam / Marketing email)');
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder(null);
-      }
+      await api.updateOrderStatus(orderId, 'CANCELLED', 'Dismissed by administrator (Non-order / Spam)');
+      showToast('Order dismissed successfully.');
+    } catch (err: any) {
+      // Rollback if failed
+      setOrders(prevOrders);
+      setSelectedOrder(prevSelected);
+      alert(`Dismiss failed: ${err.message}`);
+    }
+  };
+
+  const handleBulkDismiss = async () => {
+    if (selectedIds.size === 0) return;
+    const idsToDismiss = Array.from(selectedIds);
+    const count = idsToDismiss.length;
+
+    if (!window.confirm(`Are you sure you want to dismiss and remove ${count} selected item(s) from the review queue?`)) {
+      return;
+    }
+
+    setIsResolving(true);
+    // Optimistic UI update
+    const prevOrders = [...orders];
+    const prevSelected = selectedOrder;
+    const remaining = orders.filter((o) => !selectedIds.has(o.id));
+    setOrders(remaining);
+    setSelectedIds(new Set());
+    if (selectedOrder && selectedIds.has(selectedOrder.id)) {
+      setSelectedOrder(remaining.length > 0 ? remaining[0] : null);
+    }
+
+    try {
+      await Promise.allSettled(
+        idsToDismiss.map((id) =>
+          api.updateOrderStatus(id, 'CANCELLED', 'Bulk dismissed by administrator (Non-order / Spam)')
+        )
+      );
+      showToast(`Successfully removed ${count} item(s) from review queue.`);
       await fetchReviewOrders();
     } catch (err: any) {
-      alert(`Dismiss failed: ${err.message}`);
+      setOrders(prevOrders);
+      setSelectedOrder(prevSelected);
+      alert(`Bulk dismiss encountered an error: ${err.message}`);
     } finally {
       setIsResolving(false);
     }
@@ -68,6 +147,7 @@ export const ReviewQueueView: React.FC = () => {
         'CONFIRMED',
         reasonNotes.trim() || 'Approved & stock reserved by administrator'
       );
+      showToast(`Order ${selectedOrder.order_number} approved and dispatched!`);
       setSelectedOrder(null);
       setReasonNotes('');
       await fetchReviewOrders();
@@ -85,8 +165,9 @@ export const ReviewQueueView: React.FC = () => {
       await api.updateOrderStatus(
         selectedOrder.id,
         'CANCELLED',
-        reasonNotes.trim() || 'Rejected & cancelled by administrator'
+        reasonNotes.trim() || 'Rejected & cancelled by administrator (Non-order / Spam)'
       );
+      showToast(`Order ${selectedOrder.order_number} rejected and removed.`);
       setSelectedOrder(null);
       setReasonNotes('');
       await fetchReviewOrders();
@@ -97,9 +178,35 @@ export const ReviewQueueView: React.FC = () => {
     }
   };
 
+  const isAllSelected = orders.length > 0 && selectedIds.size === orders.length;
 
   return (
     <div className="page-wrapper">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '2rem',
+            right: '2rem',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid var(--accent-emerald)',
+            color: 'var(--text-primary)',
+            padding: '0.875rem 1.25rem',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            zIndex: 9999,
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <CheckCircle2 size={18} color="var(--accent-emerald)" />
+          <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="responsive-header" style={{ marginBottom: '1.5rem' }}>
         <div>
@@ -124,10 +231,33 @@ export const ReviewQueueView: React.FC = () => {
           </p>
         </div>
 
-        <button onClick={fetchReviewOrders} disabled={loading} className="btn btn-secondary">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Queue</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkDismiss}
+              disabled={isResolving}
+              className="btn"
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                color: '#f87171',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+              }}
+            >
+              <Trash2 size={16} />
+              <span>Delete / Dismiss Selected ({selectedIds.size})</span>
+            </button>
+          )}
+
+          <button onClick={fetchReviewOrders} disabled={loading} className="btn btn-secondary">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh Queue</span>
+          </button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
@@ -160,22 +290,69 @@ export const ReviewQueueView: React.FC = () => {
         </div>
       ) : (
         <div className="portal-split-layout">
-          {/* Left Column: List of Flagged Orders */}
+          {/* Left Column: List of Flagged Orders with Select & Delete */}
           <div className="glass-panel" style={{ padding: '0.75rem', maxHeight: '75vh', overflowY: 'auto' }}>
+            {/* Selection Toolbar Header */}
             <div
               style={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem 0.625rem 0.75rem',
+                borderBottom: '1px solid var(--border-color)',
+                marginBottom: '0.75rem',
               }}
             >
-              Flagged Inbound Orders
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  padding: 0,
+                }}
+              >
+                {isAllSelected ? (
+                  <CheckSquare size={16} color="var(--accent-cyan)" />
+                ) : selectedIds.size > 0 ? (
+                  <div
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 3,
+                      background: 'var(--accent-cyan)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <div style={{ width: 8, height: 2, background: '#000' }} />
+                  </div>
+                ) : (
+                  <Square size={16} color="var(--text-muted)" />
+                )}
+                <span>{isAllSelected ? 'Deselect All' : `Select All (${orders.length})`}</span>
+              </button>
+
+              {selectedIds.size > 0 && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  {selectedIds.size} Selected
+                </span>
+              )}
             </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {orders.map((o) => {
                 const isSelected = selectedOrder?.id === o.id;
+                const isChecked = selectedIds.has(o.id);
                 return (
                   <div
                     key={o.id}
@@ -183,30 +360,58 @@ export const ReviewQueueView: React.FC = () => {
                     style={{
                       padding: '0.875rem',
                       borderRadius: 'var(--radius-md)',
-                      background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                      border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                      background: isSelected
+                        ? 'rgba(56, 189, 248, 0.12)'
+                        : isChecked
+                        ? 'rgba(239, 68, 68, 0.06)'
+                        : 'rgba(255, 255, 255, 0.02)',
+                      border: isSelected
+                        ? '1px solid var(--accent-cyan)'
+                        : isChecked
+                        ? '1px solid rgba(239, 68, 68, 0.4)'
+                        : '1px solid var(--border-color)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                      <span className="mono" style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
-                        {o.order_number}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          title={isChecked ? 'Deselect' : 'Select'}
+                          onClick={(e) => toggleSelectOrder(o.id, e)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: isChecked ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                          }}
+                        >
+                          {isChecked ? <CheckSquare size={16} /> : <Square size={16} />}
+                        </button>
+                        <span className="mono" style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                          {o.order_number}
+                        </span>
+                      </div>
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <StatusBadge status={o.status} />
                         <button
                           type="button"
-                          title="Quick Dismiss / Delete from Queue"
+                          title="Quick Delete / Dismiss"
                           onClick={(e) => handleQuickDismiss(o.id, e)}
                           disabled={isResolving}
                           style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
                             color: '#f87171',
                             borderRadius: 'var(--radius-sm)',
-                            padding: '0.2rem 0.4rem',
+                            padding: '0.25rem 0.45rem',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -219,8 +424,19 @@ export const ReviewQueueView: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{o.customer_name || 'Customer'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, paddingLeft: '1.5rem' }}>
+                      {o.customer_name || 'Customer'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        paddingLeft: '1.5rem',
+                      }}
+                    >
                       {o.customer_email}
                     </div>
                   </div>
