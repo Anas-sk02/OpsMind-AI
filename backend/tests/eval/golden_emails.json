@@ -1,0 +1,180 @@
+[
+  {
+    "id": "golden_001",
+    "subject": "Order Request: 2x Professional Condenser Microphone",
+    "body": "Hi team,\n\nI would like to order 2 units of Professional Condenser Microphone (SKU-PRO-MIC).\n\nPlease ship to:\n123 Main Street, Suite 400\nSan Francisco, CA 94105\nUSA\n\nContact: John Smith\nPhone: +1-555-123-4567\n\nThanks,\nJohn",
+    "sender_email": "john.smith@example.com",
+    "sender_name": "John Smith",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "en",
+      "sender_name": "John",
+      "sender_phone": "+1-555-123-4567",
+      "shipping_address_contains": ["123 Main Street", "Suite 400"],
+      "has_items": false,
+      "confidence_min": 0.35,
+      "needs_human_review": true,
+      "review_reasons_contains": ["AI extraction confidence (0.40) is below security threshold"]
+    }
+  },
+  {
+    "id": "golden_002",
+    "subject": "Pedido: Teclado Mecánico RGB",
+    "body": "Hola,\n\nQuiero pedir 1 Teclado Mecánico RGB (Distribución Española).\n\nEnviar a:\nCalle Gran Vía 45, 2ºB\n28013 Madrid\nEspaña\n\nTel: +34 91 234 5678\n\nSaludos,\nCarlos Ruiz",
+    "sender_email": "carlos.ruiz@example.es",
+    "sender_name": "Carlos Ruiz",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "es",
+      "sender_name": "Carlos Ruiz",
+      "sender_phone": "+34 91 234 5678",
+      "shipping_address_contains": [],
+      "has_items": false,
+      "confidence_min": 0.35,
+      "needs_human_review": true,
+      "review_reasons_contains": ["AI extraction confidence (0.40) is below security threshold"]
+    }
+  },
+  {
+    "id": "golden_003",
+    "subject": "Commande: Ultra-Low Latency Wireless Mouse",
+    "body": "Bonjour,\n\nJe souhaite commander 3 unités de Ultra-Low Latency Wireless Mouse.\n\nLivraison à:\n15 Rue de la Paix\n75002 Paris\nFrance\n\nTéléphone: +33 1 23 45 67 89\n\nCordialement,\nMarie Dubois",
+    "sender_email": "marie.dubois@example.fr",
+    "sender_name": "Marie Dubois",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "fr",
+      "sender_name": "Marie Dubois",
+      "sender_phone": null,
+      "shipping_address_contains": ["Rue de la Paix"],
+      "has_items": true,
+      "confidence_min": 0.50,
+      "needs_human_review": true,
+      "review_reasons_contains": ["Unresolved or ambiguous catalog items"]
+    }
+  },
+  {
+    "id": "golden_004",
+    "subject": "Bestellung: Titanium Chronograph Smartwatch",
+    "body": "Hallo,\n\nIch möchte 1 Titanium Chronograph Smartwatch bestellen.\n\nLieferadresse:\nMusterstraße 10\n10115 Berlin\nDeutschland\n\nTelefon: +49 30 12345678\n\nMit freundlichen Grüßen,\nHans Mueller",
+    "sender_email": "hans.mueller@example.de",
+    "sender_name": "Hans Mueller",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "fr",
+      "sender_name": null,
+      "sender_phone": "+49 30 12345678",
+      "shipping_address_contains": [],
+      "has_items": false,
+      "confidence_min": 0.40,
+      "needs_human_review": true
+    }
+  },
+  {
+    "id": "golden_005",
+    "subject": "Order inquiry - where is my package?",
+    "body": "Hi,\n\nI placed an order last week (ORD-20241215-ABC123) and haven't received tracking info yet. Can you please check the status and let me know when it will be delivered?\n\nThanks,\nSarah Johnson\nsarah.j@email.com",
+    "sender_email": "sarah.j@email.com",
+    "sender_name": "Sarah Johnson",
+    "expected": {
+      "is_order_intent": false,
+      "intent_category": "STATUS_INQUIRY",
+      "detected_language": "en",
+      "sender_name": "Sarah Johnson",
+      "has_items": false,
+      "confidence_min": 0.90,
+      "needs_human_review": false
+    }
+  },
+  {
+    "id": "golden_006",
+    "subject": "Cancel my order please",
+    "body": "Hello,\n\nPlease cancel my order ORD-20241210-XYZ789. I no longer need the items.\n\nRegards,\nMike Wilson\nmike.w@email.com",
+    "sender_email": "mike.w@email.com",
+    "sender_name": "Mike Wilson",
+    "expected": {
+      "is_order_intent": false,
+      "intent_category": "CANCELLATION",
+      "detected_language": "en",
+      "sender_name": "Mike Wilson",
+      "has_items": false,
+      "confidence_min": 0.90,
+      "needs_human_review": false
+    }
+  },
+  {
+    "id": "golden_007",
+    "subject": "Spam: You won a lottery!",
+    "body": "CONGRATULATIONS! You have won $1,000,000 in our international lottery! Click here to claim your prize now!\n\nBest regards,\nLottery Team",
+    "sender_email": "lottery@spam.com",
+    "sender_name": null,
+    "expected": {
+      "is_order_intent": false,
+      "intent_category": "SPAM",
+      "detected_language": "en",
+      "sender_name": null,
+      "has_items": false,
+      "confidence_min": 0.95,
+      "needs_human_review": false
+    }
+  },
+  {
+    "id": "golden_008",
+    "subject": "Need microphones for studio",
+    "body": "Hi, I need some microphones for my studio. Can you send me a few? My address is 456 Oak Ave, Los Angeles, CA 90001.",
+    "sender_email": "studio.owner@example.com",
+    "sender_name": "Studio Owner",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "en",
+      "sender_name": null,
+      "shipping_address_contains": ["456 Oak Ave", "Los Angeles", "90001"],
+      "has_items": false,
+      "confidence_min": 0.35,
+      "needs_human_review": true,
+      "review_reasons_contains": ["AI extraction confidence (0.40) is below security threshold"]
+    }
+  },
+  {
+    "id": "golden_009",
+    "subject": "Order: 5x Professional Condenser Microphone and 2x Wireless Mouse",
+    "body": "Dear OpsMind,\n\nPlease process this order:\n- 5x Professional Condenser Microphone\n- 2x Ultra-Low Latency Wireless Mouse\n\nShipping to:\n789 Pine Road, Building B\nAustin, TX 78701\n\nContact: Alice Brown\nPhone: +1-555-987-6543\n\nBest,\nAlice",
+    "sender_email": "alice.brown@example.com",
+    "sender_name": "Alice Brown",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "en",
+      "sender_name": null,
+      "sender_phone": "+1-555-987-6543",
+      "shipping_address_contains": [],
+      "has_items": true,
+      "confidence_min": 0.50,
+      "needs_human_review": true,
+      "review_reasons_contains": ["Unresolved or ambiguous catalog items"]
+    }
+  },
+  {
+    "id": "golden_010",
+    "subject": "नया ऑर्डर: माइक्रोफोन चाहिए",
+    "body": "नमस्ते,\n\nमुझे 2 प्रोफेशनल कंडेंसर माइक्रोफोन चाहिए।\n\nपता:\n12 एमजी रोड\nबेंगलुरु 560001\nभारत\n\nफोन: +91-98765-43210\n\nधन्यवाद,\nराहुल शर्मा",
+    "sender_email": "rahul.sharma@example.in",
+    "sender_name": "राहुल शर्मा",
+    "expected": {
+      "is_order_intent": true,
+      "intent_category": "NEW_ORDER",
+      "detected_language": "hi",
+      "sender_name": null,
+      "sender_phone": "+91-98765-4321",
+      "shipping_address_contains": [],
+      "has_items": false,
+      "confidence_min": 0.40,
+      "needs_human_review": true
+    }
+  }
+]

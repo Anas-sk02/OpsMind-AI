@@ -100,5 +100,9 @@ class Settings(BaseSettings):
     IMAP_POLL_INTERVAL_SECONDS: int = 20
     IMAP_ENABLED: bool = True
 
+    # Celery / Redis Configuration
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+
 
 settings = Settings()

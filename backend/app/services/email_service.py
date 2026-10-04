@@ -452,19 +452,36 @@ class EmailService:
         body_html: Optional[str] = None,
     ) -> bool:
         """
-        Non-blocking asynchronous SMTP dispatcher that runs in a threadpool to prevent blocking FastAPI event loop.
+        Dispatch SMTP email via Celery worker (fire-and-forget).
+        Returns True if task was queued successfully.
         """
         try:
-            return await asyncio.to_thread(
-                EmailService._send_smtp_sync,
+            # Import here to avoid circular imports
+            from app.workers.tasks import dispatch_smtp_email_task
+
+            # Queue the email for background delivery with retries
+            dispatch_smtp_email_task.delay(
                 to_email=to_email,
                 subject=subject,
                 body_plain=body_plain,
                 body_html=body_html,
             )
+            logger.info(f"Queued SMTP email to {to_email} via Celery")
+            return True
         except Exception as ex:
-            logger.error(f"Async SMTP dispatch error: {ex}")
-            return False
+            logger.error(f"Failed to queue SMTP email via Celery: {ex}")
+            # Fallback: try direct send if Celery unavailable
+            try:
+                return await asyncio.to_thread(
+                    EmailService._send_smtp_sync,
+                    to_email=to_email,
+                    subject=subject,
+                    body_plain=body_plain,
+                    body_html=body_html,
+                )
+            except Exception as fallback_ex:
+                logger.error(f"Fallback SMTP dispatch also failed: {fallback_ex}")
+                return False
 
     @staticmethod
     async def _send_outbound_notification(
